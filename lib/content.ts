@@ -1,11 +1,21 @@
 import {
   NOTION_PAGES,
-  getSection,
+  getBlocks,
+  getChildPages,
   getEntry,
+  getHomeContent,
   plain,
   type Block,
+  type HomeContent,
   type RichText,
 } from './notion';
+import { sanitizeBlocks, stripEmoji, stripEmojiBlocks, cleanTitle } from './sanitize';
+import { p, rt } from './blocks';
+import {
+  LEARNING_FALLBACK,
+  LOG_FALLBACK,
+  PROJECT_FALLBACK,
+} from './fallback';
 
 // ── Section metadata — one source of truth for the five sub-pages ────
 export type SectionSlug =
@@ -21,7 +31,7 @@ export type SectionMeta = {
   title: string;
   tagline: string;
   notionKey: keyof typeof NOTION_PAGES;
-  kind: 'index' | 'prose'; // index → cards of entries; prose → long-form page
+  kind: 'index' | 'prose';
 };
 
 export const SECTIONS: SectionMeta[] = [
@@ -57,7 +67,7 @@ export const SECTIONS: SectionMeta[] = [
     title: 'Logs',
     notionKey: 'logs',
     kind: 'index',
-    tagline: 'Thinking in the open — the principles and decisions that compound.',
+    tagline: 'Thinking in the open: the principles and decisions that compound.',
   },
   {
     slug: 'about',
@@ -74,366 +84,439 @@ export const sectionBySlug = (slug: string): SectionMeta | undefined =>
 
 export const SECTION_SLUGS = SECTIONS.map((s) => s.slug);
 
-// ── Terse builders for placeholder blocks ────────────────────────────
-const rt = (content: string, extra: Partial<RichText> = {}): RichText => ({
-  content,
-  ...extra,
-});
-const h2 = (t: string): Block => ({ type: 'h2', text: [rt(t)] });
-const h3 = (t: string): Block => ({ type: 'h3', text: [rt(t)] });
-const p = (...text: RichText[]): Block => ({ type: 'p', text });
-const li = (t: string): Block => ({ type: 'bullet', text: [rt(t)] });
-const quote = (t: string): Block => ({ type: 'quote', text: [rt(t)] });
-const hr = (): Block => ({ type: 'divider' });
-const callout = (t: string, emoji?: string): Block => ({
-  type: 'callout',
-  text: [rt(t)],
-  emoji,
-});
+// ── Certifications ───────────────────────────────────────────────────
+// Curated grouping (issuer → credentials) with the actual certificate
+// image beside each one. Names, dates, and blurbs mirror the Notion page;
+// the images are the local assets in /public/certs. The "Name — Date"
+// dash is a divider and is rendered structurally, not as prose.
+export type Cert = {
+  slug: string;
+  name: string;
+  date: string;
+  image: string;
+  blurb: string;
+};
+export type CertGroup = { issuer: string; certs: Cert[] };
 
-// ── Placeholder entries (projects, logs) ─────────────────────────────
-type PlaceholderEntry = {
-  id: string;
+export const CERT_INTRO =
+  'Formal credentials earned. Each one reflects focused study in a specific area of finance and markets.';
+
+export const CERT_GROUPS: CertGroup[] = [
+  {
+    issuer: 'Duke University',
+    certs: [
+      {
+        slug: 'behavioural-finance',
+        name: 'Behavioural Finance',
+        date: 'Issued June 2026',
+        image: '/certs/duke.png',
+        blurb:
+          'Cognitive biases, emotional decision-making, and how psychological factors systematically affect investment behaviour and market outcomes.',
+      },
+    ],
+  },
+  {
+    issuer: 'Corporate Finance Institute (CFI)',
+    certs: [
+      {
+        slug: 'fmva',
+        name: 'Financial Modeling & Valuation Analyst (FMVA®)',
+        date: 'Issued Mar 2026',
+        image: '/certs/fmva.png',
+        blurb:
+          'Building and interpreting financial models, DCF valuation, comparable company analysis, and precedent transactions.',
+      },
+      {
+        slug: 'cmsa',
+        name: 'Capital Markets & Securities Analyst (CMSA®)',
+        date: 'Issued Mar 2026',
+        image: '/certs/cmsa.png',
+        blurb:
+          'Fixed income, equities, derivatives, and how capital markets actually function at an institutional level.',
+      },
+      {
+        slug: 'fpwmp',
+        name: 'Financial Planning & Wealth Management (FPWMP®)',
+        date: 'Issued Mar 2026',
+        image: '/certs/fpwmp.png',
+        blurb:
+          'Personal financial planning, portfolio construction, and wealth management frameworks.',
+      },
+    ],
+  },
+  {
+    issuer: 'Bloomberg',
+    certs: [
+      {
+        slug: 'bmc',
+        name: 'Bloomberg Market Concepts (BMC)',
+        date: 'Issued Apr 2026',
+        image: '/certs/bmc.png',
+        blurb:
+          "Core financial market concepts: economics, currencies, fixed income, and equities through Bloomberg's terminal lens.",
+      },
+      {
+        slug: 'esg',
+        name: 'Environmental Social Governance (ESG)',
+        date: 'Issued Apr 2026',
+        image: '/certs/esg.png',
+        blurb:
+          'ESG frameworks, sustainable investing principles, and how ESG data integrates into investment analysis.',
+      },
+    ],
+  },
+  {
+    issuer: 'IBM',
+    certs: [
+      {
+        slug: 'build-ai-agent',
+        name: 'Build an AI Agent',
+        date: 'Issued July 2026',
+        image: '/certs/ibm-ai-agent.png',
+        blurb:
+          'Designing AI agents that use tools and reason through multi-step tasks: agent architecture, orchestration, and where autonomy earns its place.',
+      },
+    ],
+  },
+  {
+    issuer: 'Canadian Securities Institute',
+    certs: [
+      {
+        slug: 'csc',
+        name: 'Canadian Securities Course (CSC)',
+        date: 'Issued Mar 2026',
+        image: '/certs/csi.png',
+        blurb:
+          'Foundational credential for the Canadian financial industry. Covers equities, fixed income, mutual funds, and regulatory frameworks.',
+      },
+    ],
+  },
+];
+
+// ── About ────────────────────────────────────────────────────────────
+export type About = {
+  intro: Block[];
+  recentlyLabel: string;
+  recently: string[];
+  contactHeading: string;
+  contactLead: string;
+  contact: { label: string; href: string };
+};
+
+export const ABOUT: About = {
+  intro: [
+    p(
+      rt(
+        'Finance student at McGill University (Desautels Faculty of Management), focused on investment management and capital markets.'
+      )
+    ),
+    p(
+      rt(
+        'I am interested in how strategies perform in real markets, not just in theory. Most of my work lives at the intersection of systematic thinking, data, and disciplined execution.'
+      )
+    ),
+    p(
+      rt(
+        'My experience includes building quantitative models and tools, contributing to open-source financial software, competing in live ML tournaments, and leading early-stage growth projects. I am comfortable working with clients and teams, and I care about communicating findings clearly, not just producing them.'
+      )
+    ),
+    p(
+      rt(
+        'This page is a public version of how I operate. It is where I document what I am building, what I am learning, and how I think.'
+      )
+    ),
+  ],
+  recentlyLabel: 'Recently',
+  recently: [
+    'Finance student at Desautels Faculty of Management, McGill University',
+    'Administrative Associate at CIBC Wood Gundy',
+    'Building Kynexis, a decision intelligence platform',
+    'Reading capital allocation and decision psychology',
+  ],
+  contactHeading: 'Reach out',
+  contactLead:
+    'Open to interesting conversations: markets, ideas, problems worth solving.',
+  contact: {
+    label: 'LinkedIn',
+    href: 'https://www.linkedin.com/in/justingianfelice',
+  },
+};
+
+// ── Learning topics (six subtabs) ────────────────────────────────────
+export type LearningTopic = {
+  slug: string;
   title: string;
   blurb: string;
-  body: Block[];
+  glyph: string;
 };
 
-const PLACEHOLDER_ENTRIES: Record<string, PlaceholderEntry[]> = {
-  projects: [
-    {
-      id: 'regime-switching-vol',
-      title: 'Regime-Switching Volatility Model',
-      blurb:
-        'A two-state hidden Markov model that separates calm from stressed markets and re-weights a vol-targeted book in response.',
-      body: [
-        callout(
-          'Python · hmmlearn · pandas · a vol-targeted overlay tested on 20 years of S&P 500 data.',
-          '📈'
-        ),
-        h2('The idea'),
-        p(
-          rt(
-            'Volatility is not stationary — it clusters. Rather than fit one model to every environment, this project treats the market as switching between a small number of hidden regimes and lets the data decide which one we are in.'
-          )
-        ),
-        h2('Method'),
-        li('Fit a two-state Gaussian HMM on daily log-returns and realized volatility.'),
-        li('Decode the most likely regime path with the Viterbi algorithm.'),
-        li('Scale exposure inversely to the posterior probability of the stressed state.'),
-        li('Walk forward with an expanding window so no future information leaks in.'),
-        h2('Result'),
-        p(
-          rt(
-            'Against a static vol-target baseline the regime overlay cut peak-to-trough drawdown by roughly a third while giving back only a small slice of return — most of the improvement came from stepping down before the worst clusters, not from timing the top.'
-          )
-        ),
-        quote(
-          'The edge was never prediction. It was sizing down fast enough when the state changed.'
-        ),
-      ],
-    },
-    {
-      id: 'limit-order-book-sim',
-      title: 'Limit-Order-Book Market-Maker',
-      blurb:
-        'An event-driven order-book simulator and a queue-aware market-making agent, tuned against replayed level-2 data.',
-      body: [
-        callout('C++ core · Python bindings · replayed L2 message data.', '🧮'),
-        h2('The idea'),
-        p(
-          rt(
-            'Market making is a game of inventory and queue position. This simulator rebuilds the book message-by-message so a strategy can be tested against the exact sequence of events it would have seen live.'
-          )
-        ),
-        h2('What it does'),
-        li('Reconstructs a full depth-of-book from add / cancel / execute messages.'),
-        li('Models queue priority so fills depend on where an order actually sits.'),
-        li('Runs an Avellaneda–Stoikov style quoting agent with inventory skew.'),
-        li('Reports fill rate, adverse selection, and end-of-day inventory risk.'),
-        h2('What I learned'),
-        p(
-          rt(
-            'Most naive spreads look profitable until you charge them for adverse selection. Getting the queue model right mattered more than getting the pricing model clever.'
-          )
-        ),
-      ],
-    },
-    {
-      id: 'factor-backtest-engine',
-      title: 'Cross-Sectional Factor Engine',
-      blurb:
-        'A vectorized backtester for equity factors with point-in-time data, transaction costs, and turnover control.',
-      body: [
-        callout('Python · NumPy · a point-in-time universe to kill survivorship bias.', '🧱'),
-        h2('The idea'),
-        p(
-          rt(
-            'A backtest is only as honest as its data. This engine was built to make the honest version easy: point-in-time membership, realistic costs, and turnover you can actually trade.'
-          )
-        ),
-        h2('Design'),
-        li('Rank names each month on value, momentum, and quality composites.'),
-        li('Build long-short portfolios with sector and turnover constraints.'),
-        li('Charge slippage and commission per rebalance, not just at the end.'),
-        li('Decompose returns into factor exposure versus alpha.'),
-        h2('Takeaway'),
-        p(
-          rt(
-            'The clean-looking factors thinned out once costs and turnover were charged fairly — which is exactly the point of building the honest engine first.'
-          )
-        ),
-      ],
-    },
-    {
-      id: 'earnings-drift-ml',
-      title: 'Post-Earnings Drift Classifier',
-      blurb:
-        'A gradient-boosted model that ranks names on the likelihood of continued drift after an earnings surprise.',
-      body: [
-        callout('Python · gradient boosting · purged, embargoed cross-validation.', '🤖'),
-        h2('The idea'),
-        p(
-          rt(
-            'Prices keep drifting in the direction of an earnings surprise for weeks. The question is which surprises drift and which fade — a ranking problem, not a point forecast.'
-          )
-        ),
-        h2('Features'),
-        li('Standardized unexpected earnings and revenue surprise.'),
-        li('Analyst revision breadth in the days after the print.'),
-        li('Pre-announcement drift and short interest.'),
-        li('Liquidity and size controls so the signal is not just microcap noise.'),
-        h2('Validation'),
-        p(
-          rt(
-            'Cross-validation was purged and embargoed to stop leakage across the event window — without it the model looked far better than it had any right to.'
-          )
-        ),
-        quote('Most of the work in ML for markets is refusing to fool yourself.'),
-      ],
-    },
-  ],
-  logs: [
-    {
-      id: '2026-06-half-life-of-an-edge',
-      title: 'On the Half-Life of an Edge',
-      blurb:
-        'Every edge decays. The discipline is knowing whether you are being crowded out or were simply wrong from the start.',
-      body: [
-        p(rt('June 2026', { italic: true })),
-        p(
-          rt(
-            'An edge that stops working tells you nothing on its own. Either the world learned it and arbitraged it away, or it was overfit and never real. Those two look identical on an equity curve and demand opposite responses.'
-          )
-        ),
-        li('Crowding shows up as falling returns with rising correlation to known factors.'),
-        li('Overfitting shows up as a live curve that never resembles the backtest at all.'),
-        li('The honest test is out-of-sample data you had never seen when you built the thing.'),
-        quote('Assume every edge is temporary and you will build systems that survive it being temporary.'),
-      ],
-    },
-    {
-      id: '2026-05-sizing-before-selection',
-      title: 'Sizing Before Selection',
-      blurb:
-        'Which name you pick matters less than how much you bet on it. Position sizing is the decision that compounds.',
-      body: [
-        p(rt('May 2026', { italic: true })),
-        p(
-          rt(
-            'It is tempting to spend all your energy on selection — the clever signal, the better model. But two people with the same signal and different sizing rules end up in completely different places.'
-          )
-        ),
-        p(
-          rt(
-            'Fractional Kelly, volatility targeting, hard risk limits: none of them are glamorous, and all of them matter more than one more feature in the model.'
-          )
-        ),
-        quote('Survive first. Optimize second.'),
-      ],
-    },
-    {
-      id: '2026-04-notebook-to-pipeline',
-      title: 'From Notebook to Pipeline',
-      blurb:
-        'A result that only exists in a notebook is a story, not a system. The gap between the two is where discipline lives.',
-      body: [
-        p(rt('April 2026', { italic: true })),
-        p(
-          rt(
-            'A notebook lets you cheat without noticing — re-running the good cell, quietly peeking at the test set. A pipeline forces the discipline: fixed inputs, fixed order, reproducible output.'
-          )
-        ),
-        li('Same command, same result, on any machine.'),
-        li('Point-in-time data so the past cannot see the future.'),
-        li('Config, not hard-coded constants buried three cells down.'),
-        p(
-          rt(
-            'The move from notebook to pipeline is the move from "I think this worked" to "this works, and here is the proof."'
-          )
-        ),
-      ],
-    },
-  ],
-};
+export const LEARNING_TOPICS: LearningTopic[] = [
+  {
+    slug: 'technical-skills',
+    title: 'Technical Skills',
+    blurb: 'The tools I build with: Python, modeling, data, and machine learning.',
+    glyph: 'code',
+  },
+  {
+    slug: 'finance-markets',
+    title: 'Finance & Markets',
+    blurb: 'How markets work, and how capital gets allocated under uncertainty.',
+    glyph: 'chart',
+  },
+  {
+    slug: 'university-courses',
+    title: 'University Courses',
+    blurb: 'Formal coursework across finance, mathematics, economics, and beyond.',
+    glyph: 'grid',
+  },
+  {
+    slug: 'soft-skills',
+    title: 'Soft Skills & Operating Principles',
+    blurb: 'How I operate: process, communication, and disciplined execution.',
+    glyph: 'nodes',
+  },
+  {
+    slug: 'writing',
+    title: 'Writing',
+    blurb: 'Essays and analysis on markets and how I think, published on Substack.',
+    glyph: 'pen',
+  },
+  {
+    slug: 'reading-list',
+    title: 'Reading List',
+    blurb: 'The books shaping how I think about markets, money, and decisions.',
+    glyph: 'book',
+  },
+];
 
-// ── Placeholder long-form intros ─────────────────────────────────────
-const PLACEHOLDER_INTRO: Record<SectionSlug, Block[]> = {
-  projects: [
-    p(
-      rt(
-        'A working portfolio of quant research and the infrastructure around it — models on the left, the honest tooling that keeps them honest on the right. Each one started as a question about markets and ended as something I could run.'
-      )
-    ),
-  ],
-  certifications: [
-    p(
-      rt(
-        'Formal credentials across markets, financial modeling, and wealth management — the structured half of an education that mostly happens by building.'
-      )
-    ),
-    h2('Completed'),
-    li('Bloomberg Market Concepts (BMC) — economics, currencies, fixed income, equities.'),
-    li('CFA Institute Investment Foundations — ethics, instruments, and industry structure.'),
-    li('Wall Street Prep — Financial Statement & DCF Modeling.'),
-    h2('In progress'),
-    li('Canadian Securities Course (CSC).'),
-    li('CFA Level I — candidate, target sitting next cycle.'),
-    hr(),
-    callout(
-      'Certificates are the floor, not the ceiling — the projects are where the learning actually shows.',
-      '📜'
-    ),
-  ],
-  learning: [
-    p(
-      rt(
-        'What I am actively studying right now. This page is deliberately a moving target — it is a log of the frontier, not a résumé.'
-      )
-    ),
-    h2('Reading'),
-    li('Advances in Financial Machine Learning — Marcos López de Prado.'),
-    li('Options, Futures, and Other Derivatives — Hull.'),
-    li('Active Portfolio Management — Grinold & Kahn.'),
-    h2('Coursework & skills'),
-    li('Stochastic calculus and the mathematics behind derivative pricing.'),
-    li('Time-series econometrics — cointegration, GARCH, state-space models.'),
-    li('Sharpening C++ for latency-sensitive simulation, alongside daily Python.'),
-    quote('Study the thing you are about to need, not the thing that is comfortable.'),
-  ],
-  logs: [
-    p(
-      rt(
-        'Short notes on markets, models, and the discipline of executing — written to think in the open and to keep myself honest over time.'
-      )
-    ),
-  ],
-  about: [
-    p(
-      rt(
-        'I study Finance at McGill and build at the intersection of markets, data, and disciplined execution. I am drawn to the parts of investing that can be made rigorous — where a hypothesis can be written down, tested against history, and either survive the evidence or be discarded.'
-      )
-    ),
-    h2('How I work'),
-    p(
-      rt(
-        'I like turning vague market intuition into something concrete: a model, a backtest, a simulation I can actually run and stress. Most of that work is unglamorous — cleaning data, guarding against leakage, charging honest costs — and that is exactly the part I trust.'
-      )
-    ),
-    h2('What I care about'),
-    li('Process over outcome — good decisions, judged before the result is known.'),
-    li('Risk first — survive, then compound.'),
-    li('Reproducibility — if it only ran once, it never really ran.'),
-    hr(),
-    p(
-      rt('Reach me at '),
-      rt('justin.gianfelice@mail.mcgill.ca', {
-        href: 'mailto:justin.gianfelice@mail.mcgill.ca',
-      }),
-      rt('.')
-    ),
-  ],
-};
+export const learningTopicBySlug = (slug: string): LearningTopic | undefined =>
+  LEARNING_TOPICS.find((t) => t.slug === slug);
 
-// ── Loaders (live Notion first, placeholder fallback) ────────────────
-export type SectionEntry = { id: string; title: string; blurb: string };
-
-export type LoadedSection = {
-  meta: SectionMeta;
-  intro: Block[];
-  entries: SectionEntry[];
-  live: boolean;
-};
-
-export async function loadSection(
-  slug: SectionSlug
-): Promise<LoadedSection | null> {
-  const meta = sectionBySlug(slug);
-  if (!meta) return null;
-
-  const { blocks, children } = await getSection(NOTION_PAGES[meta.notionKey]);
-  const intro = blocks.length ? blocks : PLACEHOLDER_INTRO[slug];
-
-  let entries: SectionEntry[] = [];
-  let live = blocks.length > 0;
-
-  if (meta.kind === 'index') {
-    if (children.length) {
-      live = true;
-      entries = await Promise.all(
-        children.map(async (c) => {
-          const { blocks: b } = await getEntry(c.id);
-          const firstP = b.find((x) => x.type === 'p') as
-            | { text: RichText[] }
-            | undefined;
-          return {
-            id: c.id,
-            title: c.title,
-            blurb: firstP ? plain(firstP.text) : '',
-          };
-        })
-      );
-    } else {
-      entries = (PLACEHOLDER_ENTRIES[slug] || []).map((e) => ({
-        id: e.id,
-        title: e.title,
-        blurb: e.blurb,
-      }));
-    }
-  }
-
-  return { meta, intro, entries, live };
+function learningSlugFor(heading: string): string | null {
+  const h = heading.toLowerCase();
+  if (h.includes('technical')) return 'technical-skills';
+  if (h.includes('finance')) return 'finance-markets';
+  if (h.includes('course')) return 'university-courses';
+  if (h.includes('soft skill') || h.includes('operating')) return 'soft-skills';
+  if (h.includes('writing')) return 'writing';
+  if (h.includes('reading')) return 'reading-list';
+  return null;
 }
 
-export type LoadedEntry = { meta: SectionMeta; title: string; blocks: Block[] };
+function parseLearning(blocks: Block[]): Record<string, Block[]> {
+  const out: Record<string, Block[]> = {};
+  for (const sec of splitBy(blocks, 'h2')) {
+    const slug = learningSlugFor(sec.heading);
+    if (slug) {
+      const clean = sanitizeBlocks(sec.blocks);
+      if (clean.length) out[slug] = clean;
+    }
+  }
+  return out;
+}
 
-export async function loadEntry(
-  slug: SectionSlug,
+export async function loadLearningTopic(
+  slug: string
+): Promise<{ topic: LearningTopic; blocks: Block[] } | null> {
+  const topic = learningTopicBySlug(slug);
+  if (!topic) return null;
+  const parsed = parseLearning(await getBlocks(NOTION_PAGES.learning));
+  const blocks = parsed[slug]?.length ? parsed[slug] : LEARNING_FALLBACK[slug] || [];
+  return { topic, blocks };
+}
+
+// ── Logs (two tracks, each with dated entries) ───────────────────────
+export type LogCategory = {
+  slug: string;
+  title: string;
+  blurb: string;
+  description: string;
+};
+
+export type LogEntry = { date: string; title: string; blocks: Block[] };
+
+export const LOG_CATEGORIES: LogCategory[] = [
+  {
+    slug: 'thinking-evolution',
+    title: 'Thinking Evolution',
+    blurb: 'How my thinking has changed over time, entry by entry.',
+    description:
+      'A running record of how my thinking evolves. Each entry is a snapshot of what I believed, and why, at a single point in time.',
+  },
+  {
+    slug: 'pattern-analysis',
+    title: 'Pattern Analysis',
+    blurb: 'Periodic reviews, looking back for patterns across the work.',
+    description:
+      'Periodic step-backs to look for patterns across months of work: what shifted, what stayed constant, and what that says about the direction.',
+  },
+];
+
+export const logCategoryBySlug = (slug: string): LogCategory | undefined =>
+  LOG_CATEGORIES.find((c) => c.slug === slug);
+
+const MONTHS: Record<string, string> = {
+  jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
+  jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+};
+
+// "June 26, 2026" → 2026-06-26; "April 2026" → 2026-04-01. A trailing
+// " — Second Entry" style subtitle is dropped before parsing.
+function parseLogDate(title: string): string {
+  const head = title.split(/\s*[—–]\s*/)[0].trim();
+  const m = head.match(/([A-Za-z]{3,9})\.?\s+(?:(\d{1,2})\s*,?\s+)?(\d{4})/);
+  if (!m) return '';
+  const mon = MONTHS[m[1].slice(0, 3).toLowerCase()];
+  if (!mon) return '';
+  const day = m[2] ? m[2].padStart(2, '0') : '01';
+  return `${m[3]}-${mon}-${day}`;
+}
+
+function logSlugFor(heading: string): string | null {
+  const h = heading.toLowerCase();
+  if (h.includes('pattern')) return 'pattern-analysis';
+  if (h.includes('thinking') || h.includes('evolution')) return 'thinking-evolution';
+  return null;
+}
+
+function parseLogs(blocks: Block[]): Record<string, LogEntry[]> {
+  const out: Record<string, LogEntry[]> = {};
+  for (const track of splitBy(blocks, 'h1')) {
+    const slug = logSlugFor(track.heading);
+    if (!slug) continue;
+    const entries: LogEntry[] = [];
+    for (const entry of splitBy(track.blocks, 'h2')) {
+      const date = parseLogDate(entry.heading);
+      if (!date) continue;
+      entries.push({
+        date,
+        title: cleanTitle(entry.heading),
+        blocks: sanitizeBlocks(entry.blocks),
+      });
+    }
+    if (entries.length) out[slug] = entries;
+  }
+  return out;
+}
+
+const byDateDesc = (a: LogEntry, b: LogEntry) => (a.date < b.date ? 1 : -1);
+
+export async function loadLogCategory(
+  slug: string
+): Promise<{ category: LogCategory; entries: LogEntry[] } | null> {
+  const category = logCategoryBySlug(slug);
+  if (!category) return null;
+  const parsed = parseLogs(await getBlocks(NOTION_PAGES.logs));
+  const entries = (parsed[slug]?.length ? parsed[slug] : LOG_FALLBACK[slug] || [])
+    .slice()
+    .sort(byDateDesc);
+  return { category, entries };
+}
+
+export async function loadLogEntry(
+  categorySlug: string,
+  date: string
+): Promise<{ category: LogCategory; entry: LogEntry } | null> {
+  const loaded = await loadLogCategory(categorySlug);
+  if (!loaded) return null;
+  const entry = loaded.entries.find((e) => e.date === date);
+  return entry ? { category: loaded.category, entry } : null;
+}
+
+// For generateStaticParams on /logs/[category]/[date].
+export async function logParams(): Promise<{ category: string; date: string }[]> {
+  const out: { category: string; date: string }[] = [];
+  for (const c of LOG_CATEGORIES) {
+    const loaded = await loadLogCategory(c.slug);
+    loaded?.entries.forEach((e) => out.push({ category: c.slug, date: e.date }));
+  }
+  return out;
+}
+
+// ── Projects ─────────────────────────────────────────────────────────
+export type ProjectSummary = { id: string; title: string; blurb: string };
+
+export async function loadProjects(): Promise<ProjectSummary[]> {
+  const children = await getChildPages(NOTION_PAGES.projects);
+  if (!children.length) {
+    return PROJECT_FALLBACK.map((p) => ({ id: p.id, title: p.title, blurb: p.blurb }));
+  }
+  return Promise.all(
+    children.map(async (c) => {
+      const blocks = sanitizeBlocks(await getBlocks(c.id), { dropStatus: true });
+      const firstP = blocks.find((b) => b.type === 'p') as
+        | { text: RichText[] }
+        | undefined;
+      return {
+        id: c.id,
+        title: cleanTitle(c.title),
+        blurb: firstP ? plain(firstP.text) : '',
+      };
+    })
+  );
+}
+
+export async function loadProject(
   id: string
-): Promise<LoadedEntry | null> {
-  const meta = sectionBySlug(slug);
-  if (!meta) return null;
-
+): Promise<{ title: string; blocks: Block[] } | null> {
   const entry = await getEntry(id);
   if (entry.title && entry.blocks.length) {
-    return { meta, title: entry.title, blocks: entry.blocks };
+    return {
+      title: cleanTitle(entry.title),
+      blocks: sanitizeBlocks(entry.blocks, { dropStatus: true }),
+    };
   }
-
-  const ph = (PLACEHOLDER_ENTRIES[slug] || []).find((e) => e.id === id);
-  if (ph) return { meta, title: ph.title, blocks: ph.body };
-
+  const fb = PROJECT_FALLBACK.find((p) => p.id === id);
+  if (fb) return { title: fb.title, blocks: fb.body };
   if (entry.title || entry.blocks.length) {
-    return { meta, title: entry.title || 'Untitled', blocks: entry.blocks };
+    return {
+      title: cleanTitle(entry.title || 'Untitled'),
+      blocks: sanitizeBlocks(entry.blocks, { dropStatus: true }),
+    };
   }
   return null;
 }
 
-// For generateStaticParams — union of live child ids and placeholder ids.
-export async function entryIds(slug: SectionSlug): Promise<string[]> {
-  const meta = sectionBySlug(slug);
-  if (!meta || meta.kind !== 'index') return [];
-  const { children } = await getSection(NOTION_PAGES[meta.notionKey]);
+export async function projectIds(): Promise<string[]> {
+  const children = await getChildPages(NOTION_PAGES.projects);
   const live = children.map((c) => c.id);
-  const ph = (PLACEHOLDER_ENTRIES[slug] || []).map((e) => e.id);
-  return Array.from(new Set([...live, ...ph]));
+  const fb = PROJECT_FALLBACK.map((p) => p.id);
+  return Array.from(new Set([...live, ...fb]));
+}
+
+// ── Home payload ─────────────────────────────────────────────────────
+// The hero's WebGL scene is fed by getHomeContent. The brand forbids emoji
+// everywhere, and the raw payload carries a couple (in non-rendered headings),
+// so strip emoji from every field. This is emoji-ONLY: dashes, disclaimers, and
+// paragraph structure are left intact so the hero's scene text is unchanged.
+export async function loadHomeContent(): Promise<HomeContent> {
+  const c = await getHomeContent();
+  return {
+    ...c,
+    heroIntro: stripEmoji(c.heroIntro),
+    heroQuote: stripEmoji(c.heroQuote),
+    projectsIntro: stripEmoji(c.projectsIntro),
+    certifications: stripEmojiBlocks(c.certifications),
+    learning: stripEmojiBlocks(c.learning),
+    logs: stripEmojiBlocks(c.logs),
+    about: stripEmojiBlocks(c.about),
+  };
+}
+
+// ── Shared parsing helper ────────────────────────────────────────────
+// Split a flat block list into sections at each heading of `type`. Blocks
+// before the first such heading are ignored (section intros we don't need).
+type HeadingSection = { heading: string; blocks: Block[] };
+function splitBy(blocks: Block[], type: 'h1' | 'h2'): HeadingSection[] {
+  const out: HeadingSection[] = [];
+  let cur: HeadingSection | null = null;
+  for (const b of blocks) {
+    if (b.type === type) {
+      cur = { heading: plain((b as { text: RichText[] }).text), blocks: [] };
+      out.push(cur);
+    } else if (cur) {
+      cur.blocks.push(b);
+    }
+  }
+  return out;
 }
