@@ -22,6 +22,9 @@ function firstPara(blocks: Block[]): string {
 export default function Experience({ content }: { content: HomeContent }) {
   // 0 = hero, 1..5 = the five sections.
   const [scene, setScene] = useState(0);
+  // A hero face tapped on a touch device (which can't hover) — drives the
+  // mobile "preview + enter" card below.
+  const [heroPick, setHeroPick] = useState<number | null>(null);
 
   const sections = [
     {
@@ -73,7 +76,11 @@ export default function Experience({ content }: { content: HomeContent }) {
       <Nav />
 
       {/* The world — fixed, full-bleed, carries every word you read. */}
-      <MarketSurface sections={sections} onSceneChange={setScene} />
+      <MarketSurface
+        sections={sections}
+        onSceneChange={setScene}
+        onHeroPick={setHeroPick}
+      />
 
       {/* Wordmark, pinned top-left and present from the very first frame —
           IBM Plex Mono, uppercase, the way igloo sets its marque. */}
@@ -102,11 +109,46 @@ export default function Experience({ content }: { content: HomeContent }) {
         </Link>
       </div>
 
+      {/* Touch preview — because you can't hover a crystal on a phone: tap a
+          face to raise its section here, then tap Enter to fly there. Mobile
+          only; the desktop hover→click flow is untouched. */}
+      {heroPick !== null && sections[heroPick] && (
+        <div className="fixed inset-x-0 bottom-0 z-40 p-4 pointer-events-auto md:hidden animate-[fadeIn_300ms_ease-out_both]">
+          <div className="mx-auto max-w-sm rounded-xl border border-line bg-surface/95 p-5 backdrop-blur-md">
+            <div className="flex items-start justify-between gap-3">
+              <div className="font-mono text-xs uppercase tracking-label text-accent">
+                {sections[heroPick].index} / {String(sections.length).padStart(2, '0')}
+              </div>
+              <button
+                onClick={() => setHeroPick(null)}
+                aria-label="Dismiss preview"
+                className="-mr-1 -mt-1 px-1 font-mono text-lg leading-none text-muted hover:text-ink"
+              >
+                ×
+              </button>
+            </div>
+            <h2 className="mt-2 font-mono text-xl text-ink">
+              {sections[heroPick].title}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              {sections[heroPick].desc}
+            </p>
+            <Link
+              href={sections[heroPick].href}
+              className="mt-4 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-label text-accent"
+            >
+              <span className="link-underline">Enter {sections[heroPick].title}</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Scroll cue, only at the very top — wordless, so the hero stays
           purely the object. Just a quiet pulse downward. */}
       <div
         className={`fixed bottom-8 inset-x-0 z-20 flex flex-col items-center text-faint transition-opacity duration-700 pointer-events-none ${
-          scene === 0 ? 'opacity-70' : 'opacity-0'
+          scene === 0 && heroPick === null ? 'opacity-70' : 'opacity-0'
         }`}
       >
         <span className="inline-block animate-bounce not-italic text-lg">↓</span>

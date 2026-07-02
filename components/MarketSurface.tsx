@@ -511,10 +511,17 @@ function HeroCrystal({
   introRef,
   scrollRef,
   sections,
+  picked,
+  onPick,
 }: {
   introRef: React.MutableRefObject<number>;
   scrollRef: React.MutableRefObject<number>;
   sections: Section[];
+  // A tapped face (touch devices, which cannot hover). Lifted to
+  // MarketSurface so the canvas background can clear it, and so the HTML
+  // layer can show a matching "enter this section" card.
+  picked: number | null;
+  onPick: (i: number | null) => void;
 }) {
   const grp = useRef<THREE.Group>(null);
   const dir = useRef<THREE.Group>(null);
@@ -596,13 +603,18 @@ function HeroCrystal({
 
     const active = scrollRef.current < HERO_END && introRef.current > 0.5;
     if (dir.current) dir.current.visible = active;
-    if (!active && hover !== null) setHover(null);
+    if (!active) {
+      if (hover !== null) setHover(null);
+      onPick(null); // guarded in MarketSurface — a no-op once already null
+    }
 
+    // Hover (mouse) takes precedence; a tapped face (touch) persists.
+    const sel = hover !== null ? hover : picked;
     const t = state.clock.elapsedTime;
     let maxA = 0;
     let hi = 0;
     picks.forEach((_, i) => {
-      const target = active && hover === i ? 1 : 0;
+      const target = active && sel === i ? 1 : 0;
       amt.current[i] = THREE.MathUtils.damp(amt.current[i], target, 10, delta);
       const a = amt.current[i];
       if (a > maxA) {
@@ -705,8 +717,16 @@ function HeroCrystal({
                     }}
                     onPointerDown={(ev) => {
                       ev.stopPropagation();
-                      const max = document.body.scrollHeight - window.innerHeight;
-                      window.scrollTo({ top: SECTION_S[i] * max, behavior: 'smooth' });
+                      // Touch/pen can't hover: first tap reveals the section
+                      // preview (and its Enter button in the HTML layer); tap
+                      // again to dismiss. A mouse click flies straight down to
+                      // the section, exactly as before.
+                      if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
+                        onPick(picked === i ? null : i);
+                      } else {
+                        const max = document.body.scrollHeight - window.innerHeight;
+                        window.scrollTo({ top: SECTION_S[i] * max, behavior: 'smooth' });
+                      }
                     }}
                   >
                     <bufferGeometry>
@@ -794,9 +814,13 @@ function HeroCrystal({
 function World({
   sections,
   scrollRef,
+  picked,
+  onPick,
 }: {
   sections: Section[];
   scrollRef: React.MutableRefObject<number>;
+  picked: number | null;
+  onPick: (i: number | null) => void;
 }) {
   // The hero crystal grows on load; section crystals grow when reached.
   const heroIntro = useRef(0);
@@ -813,7 +837,13 @@ function World({
 
       {/* Hero crystal — the chart sealed in ice, and the site's directory:
           five of the crystal's real faces light up under the cursor. */}
-      <HeroCrystal introRef={heroIntro} scrollRef={scrollRef} sections={sections} />
+      <HeroCrystal
+        introRef={heroIntro}
+        scrollRef={scrollRef}
+        sections={sections}
+        picked={picked}
+        onPick={onPick}
+      />
 
       {/* Section crystals receding into the frost. */}
       {sections.map((_, j) => (
@@ -916,9 +946,11 @@ function CameraRig({
 export default function MarketSurface({
   sections,
   onSceneChange,
+  onHeroPick,
 }: {
   sections: Section[];
   onSceneChange?: (i: number) => void;
+  onHeroPick?: (i: number | null) => void;
 }) {
   const scrollRef = useRef(0);
   const pointer = useRef({ x: 0, y: 0 });
@@ -926,6 +958,17 @@ export default function MarketSurface({
   // The hero doubles as a directory, so the canvas only accepts pointer
   // events while you're in the hero; below that it stays click-through.
   const [interactive, setInteractive] = useState(true);
+
+  // A tapped hero face (touch only). Guarded so repeated clears are no-ops,
+  // which lets HeroCrystal safely clear it from its frame loop.
+  const [picked, setPicked] = useState<number | null>(null);
+  const pickedRef = useRef<number | null>(null);
+  const pick = (i: number | null) => {
+    if (pickedRef.current === i) return;
+    pickedRef.current = i;
+    setPicked(i);
+    onHeroPick?.(i);
+  };
 
   const keyframes = useMemo(() => {
     const kf: { s: number; pos: THREE.Vector3; look: THREE.Vector3 }[] = [];
@@ -1001,11 +1044,12 @@ export default function MarketSurface({
           gl={{ antialias: true }}
           dpr={[1, 1.6]}
           style={{ touchAction: 'pan-y' }}
+          onPointerMissed={() => pick(null)}
         >
           <color attach="background" args={[BG]} />
           <fog attach="fog" args={[BG, 9, 30]} />
           <CameraRig keyframes={keyframes} scrollRef={scrollRef} pointer={pointer} />
-          <World sections={sections} scrollRef={scrollRef} />
+          <World sections={sections} scrollRef={scrollRef} picked={picked} onPick={pick} />
 
           <EffectComposer>
             <Bloom

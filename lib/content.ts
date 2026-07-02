@@ -97,6 +97,9 @@ export type Cert = {
   blurb: string;
 };
 export type CertGroup = { issuer: string; certs: Cert[] };
+// A credential flattened out of its issuer group, so the whole set can be
+// ordered by recency across issuers while still showing who issued it.
+export type CertItem = Cert & { issuer: string };
 
 export const CERT_INTRO =
   'Formal credentials earned. Each one reflects focused study in a specific area of finance and markets.';
@@ -192,6 +195,27 @@ export const CERT_GROUPS: CertGroup[] = [
     ],
   },
 ];
+
+// Rank a cert by its issue date ("Issued July 2026" → 202607) so the whole
+// set can be shown most-recent-first across issuers. Handles full and
+// abbreviated month names.
+const CERT_MONTHS: Record<string, number> = {
+  jan: 1, january: 1, feb: 2, february: 2, mar: 3, march: 3, apr: 4, april: 4,
+  may: 5, jun: 6, june: 6, jul: 7, july: 7, aug: 8, august: 8, sep: 9,
+  sept: 9, september: 9, oct: 10, october: 10, nov: 11, november: 11,
+  dec: 12, december: 12,
+};
+function certRank(date: string): number {
+  const m = date.match(/([A-Za-z]{3,9})\.?\s+(\d{4})/);
+  if (!m) return 0;
+  return parseInt(m[2], 10) * 100 + (CERT_MONTHS[m[1].toLowerCase()] || 0);
+}
+
+// Every credential, flattened and ordered newest → oldest. Array.sort is
+// stable, so certs issued in the same month keep their curated order.
+export const CERTS: CertItem[] = CERT_GROUPS.flatMap((g) =>
+  g.certs.map((c) => ({ ...c, issuer: g.issuer }))
+).sort((a, b) => certRank(b.date) - certRank(a.date));
 
 // ── About ────────────────────────────────────────────────────────────
 export type About = {
@@ -315,14 +339,95 @@ function parseLearning(blocks: Block[]): Record<string, Block[]> {
   return out;
 }
 
+// ── Learning content shaping ─────────────────────────────────────────
+// These entries are authored in Notion as "**Label** — description" rows
+// (a bold label run followed by a run that opens with a dash divider). We
+// (1) alphabetize them by label and (2) turn the dash divider into a colon
+// for the definition-style lists, so the content stays tidy no matter what
+// order things get added to Notion in.
+const textRuns = (b: Block): RichText[] =>
+  Array.isArray((b as { text?: RichText[] }).text) ? (b as { text: RichText[] }).text : [];
+
+// A "labeled" row leads with a bold, non-link run (the term / course / book).
+const isLabeled = (b: Block): boolean => {
+  const t = textRuns(b);
+  return !!t[0]?.bold && !t[0]?.href;
+};
+
+// Sort key: the label, lowercased, with a leading article dropped so
+// "The Intelligent Investor" files under I, library-style.
+function labelKey(b: Block): string {
+  const t = textRuns(b);
+  const label = isLabeled(b) ? t[0].content : plain(t).split(/\s[—–-]\s/)[0];
+  return label.trim().toLowerCase().replace(/^(the|a|an)\s+/, '');
+}
+
+// "**Label** — desc" → "**Label**: desc" (only touches the leading divider
+// of the description run, so any dashes inside the description survive).
+function colonizeDivider(b: Block): Block {
+  const t = textRuns(b);
+  if (t.length < 2 || !isLabeled(b)) return b;
+  const m = t[1].content.match(/^\s*[—–-]\s*/);
+  if (!m) return b;
+  const runs = t.slice();
+  runs[1] = { ...runs[1], content: ': ' + runs[1].content.slice(m[0].length) };
+  return { ...(b as object), text: runs } as Block;
+}
+
+// Definition lists (skills, courses): keep any preamble, sort the labeled
+// rows, colonize their dividers, drop the section rule.
+function sortDefinitionList(blocks: Block[], colon: boolean): Block[] {
+  const kept = blocks.filter((b) => b.type !== 'divider');
+  const i0 = kept.findIndex(isLabeled);
+  if (i0 < 0) return kept;
+  const pre = kept.slice(0, i0);
+  const rest = kept.slice(i0);
+  const items = rest.filter(isLabeled).sort((a, b) => labelKey(a).localeCompare(labelKey(b)));
+  const extras = rest.filter((b) => !isLabeled(b));
+  return [...pre, ...(colon ? items.map(colonizeDivider) : items), ...extras];
+}
+
+// Reading list: title/takeaway pairs. Sort whole pairs by book title and
+// keep the "— Author" attribution dash (a colon there would read as a
+// subtitle), plus any leading preamble.
+function sortReadingList(blocks: Block[]): Block[] {
+  const kept = blocks.filter((b) => b.type !== 'divider');
+  const intro: Block[] = [];
+  const pairs: { title: Block; rest: Block[] }[] = [];
+  let cur: { title: Block; rest: Block[] } | null = null;
+  for (const b of kept) {
+    if (isLabeled(b)) {
+      cur = { title: b, rest: [] };
+      pairs.push(cur);
+    } else if (cur) cur.rest.push(b);
+    else intro.push(b);
+  }
+  pairs.sort((a, b) => labelKey(a.title).localeCompare(labelKey(b.title)));
+  return [...intro, ...pairs.flatMap((p) => [p.title, ...p.rest])];
+}
+
+function formatLearning(slug: string, blocks: Block[]): Block[] {
+  switch (slug) {
+    case 'technical-skills':
+    case 'finance-markets':
+    case 'soft-skills':
+    case 'university-courses':
+      return sortDefinitionList(blocks, true);
+    case 'reading-list':
+      return sortReadingList(blocks);
+    default:
+      return blocks; // writing — left as authored
+  }
+}
+
 export async function loadLearningTopic(
   slug: string
 ): Promise<{ topic: LearningTopic; blocks: Block[] } | null> {
   const topic = learningTopicBySlug(slug);
   if (!topic) return null;
   const parsed = parseLearning(await getBlocks(NOTION_PAGES.learning));
-  const blocks = parsed[slug]?.length ? parsed[slug] : LEARNING_FALLBACK[slug] || [];
-  return { topic, blocks };
+  const chosen = parsed[slug]?.length ? parsed[slug] : LEARNING_FALLBACK[slug] || [];
+  return { topic, blocks: formatLearning(slug, chosen) };
 }
 
 // ── Logs (two tracks, each with dated entries) ───────────────────────
@@ -436,12 +541,21 @@ export async function logParams(): Promise<{ category: string; date: string }[]>
 // ── Projects ─────────────────────────────────────────────────────────
 export type ProjectSummary = { id: string; title: string; blurb: string };
 
+// Alphabetical by title, ignoring a leading article, so the list has a
+// predictable order regardless of Notion's page ordering.
+const byTitle = (a: { title: string }, b: { title: string }) =>
+  a.title.replace(/^(the|a|an)\s+/i, '').localeCompare(
+    b.title.replace(/^(the|a|an)\s+/i, '')
+  );
+
 export async function loadProjects(): Promise<ProjectSummary[]> {
   const children = await getChildPages(NOTION_PAGES.projects);
   if (!children.length) {
-    return PROJECT_FALLBACK.map((p) => ({ id: p.id, title: p.title, blurb: p.blurb }));
+    return PROJECT_FALLBACK.map((p) => ({ id: p.id, title: p.title, blurb: p.blurb })).sort(
+      byTitle
+    );
   }
-  return Promise.all(
+  const projects = await Promise.all(
     children.map(async (c) => {
       const blocks = sanitizeBlocks(await getBlocks(c.id), { dropStatus: true });
       const firstP = blocks.find((b) => b.type === 'p') as
@@ -454,6 +568,7 @@ export async function loadProjects(): Promise<ProjectSummary[]> {
       };
     })
   );
+  return projects.sort(byTitle);
 }
 
 export async function loadProject(

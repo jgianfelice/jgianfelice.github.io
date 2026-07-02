@@ -3,6 +3,19 @@ import type { SectionSlug } from '@/lib/content';
 // A quiet, distinct instrument-trace band per section. Thin cool-blue strokes
 // on the crystal palette — enough to give each page its own visual signature
 // without competing with the content or touching the list layouts.
+
+// A smooth sine polyline across the full band. The bands render with
+// preserveAspectRatio="none", so shapes get stretched horizontally; curves
+// (unlike the old plates) stretch gracefully and still read as intentional.
+function sinePath(amp: number, mid: number, phase: number, cycles: number, w = 1200, step = 10): string {
+  let d = '';
+  for (let x = 0; x <= w; x += step) {
+    const y = mid + amp * Math.sin(phase + (x / w) * Math.PI * 2 * cycles);
+    d += `${x === 0 ? 'M' : 'L'}${x} ${y.toFixed(1)} `;
+  }
+  return d.trim();
+}
+
 const motifs: Record<SectionSlug, React.ReactNode> = {
   // Plotted equity/signal curve over a faint grid.
   projects: (
@@ -19,24 +32,14 @@ const motifs: Record<SectionSlug, React.ReactNode> = {
       <circle cx="760" cy="30" r="2.5" className="text-ice" fill="currentColor" />
     </>
   ),
-  // Overlapping credential plates.
+  // Guilloché — two interweaving waves, the classic security-print /
+  // certificate motif. Reads as deliberate even when the band is stretched.
   certifications: (
     <>
-      {[0, 1, 2, 3, 4].map((i) => (
-        <rect
-          key={i}
-          x={40 + i * 230}
-          y={18 + (i % 2) * 6}
-          width="150"
-          height="44"
-          rx="3"
-          className={i % 2 ? 'text-accent-dim' : 'text-accent'}
-          stroke="currentColor"
-          strokeWidth={1}
-          fill="none"
-        />
-      ))}
-      <path d="M0 76h1200" className="text-line" stroke="currentColor" strokeWidth={0.5} />
+      <path d={sinePath(15, 40, 0, 6)} className="text-accent" stroke="currentColor" strokeWidth={1} fill="none" />
+      <path d={sinePath(15, 40, Math.PI, 6)} className="text-accent-dim" stroke="currentColor" strokeWidth={1} fill="none" />
+      <path d={sinePath(8, 40, Math.PI / 2, 11)} className="text-ice" stroke="currentColor" strokeWidth={0.75} fill="none" />
+      <path d="M0 40h1200" className="text-line" stroke="currentColor" strokeWidth={0.5} />
     </>
   ),
   // Node lattice.

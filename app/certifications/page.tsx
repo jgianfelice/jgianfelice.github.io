@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PageShell, { SectionNav } from '@/components/PageShell';
 import SectionMotif from '@/components/SectionMotif';
 import CertCard from '@/components/CertCard';
-import { CERT_GROUPS, CERT_INTRO, sectionBySlug, SECTIONS } from '@/lib/content';
+import { CERTS, CERT_INTRO, sectionBySlug, SECTIONS } from '@/lib/content';
 
 export const revalidate = 300;
 
@@ -22,20 +22,18 @@ export default function CertificationsPage() {
       footer={<SectionNav slug="certifications" />}
     >
       <SectionMotif slug="certifications" />
-      <p className="max-w-prose leading-relaxed text-muted">{CERT_INTRO}</p>
+      <div className="flex items-baseline justify-between gap-4">
+        <p className="max-w-prose leading-relaxed text-muted">{CERT_INTRO}</p>
+        <span className="hidden shrink-0 font-mono text-xs uppercase tracking-label text-faint sm:block">
+          {CERTS.length} credentials
+        </span>
+      </div>
 
       <div className="mt-12 divide-y divide-line border-t border-line">
-        {CERT_GROUPS.map((group) => (
-          <section key={group.issuer} className="py-10">
-            <h2 className="mb-6 font-mono text-sm uppercase tracking-label text-accent">
-              {group.issuer}
-            </h2>
-            <div className="space-y-8">
-              {group.certs.map((cert) => (
-                <CertCard key={cert.slug} cert={cert} />
-              ))}
-            </div>
-          </section>
+        {CERTS.map((cert) => (
+          <div key={cert.slug} className="py-9">
+            <CertCard cert={cert} />
+          </div>
         ))}
       </div>
     </PageShell>
