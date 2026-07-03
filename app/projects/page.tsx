@@ -41,8 +41,8 @@ function ProjectsAside({ count }: { count: number }) {
             strokeWidth={1.5}
             fill="none"
           />
-          <circle cx="60" cy="38" r="2.5" className="text-ice" fill="currentColor" />
-          <circle cx="118" cy="40" r="2.5" className="text-ice" fill="currentColor" />
+          <circle cx="60" cy="38" r="2.5" className="text-accent" fill="currentColor" />
+          <circle cx="118" cy="40" r="2.5" className="text-accent" fill="currentColor" />
         </svg>
 
         <p className="mt-4 text-xs leading-relaxed text-muted">

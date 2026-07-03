@@ -1,8 +1,8 @@
 import type { SectionSlug } from '@/lib/content';
 
-// A quiet, distinct instrument-trace band per section. Thin cool-blue strokes
-// on the crystal palette — enough to give each page its own visual signature
-// without competing with the content or touching the list layouts.
+// A quiet, distinct instrument-trace band per section. Thin graphite strokes
+// on the pale concrete field — enough to give each page its own visual
+// signature without competing with the content or touching the list layouts.
 
 // A smooth sine polyline across the full band. The bands render with
 // preserveAspectRatio="none", so shapes get stretched horizontally; curves
@@ -28,8 +28,8 @@ const motifs: Record<SectionSlug, React.ReactNode> = {
         strokeWidth={1.5}
         fill="none"
       />
-      <circle cx="520" cy="50" r="2.5" className="text-ice" fill="currentColor" />
-      <circle cx="760" cy="30" r="2.5" className="text-ice" fill="currentColor" />
+      <circle cx="520" cy="50" r="2.5" className="text-accent" fill="currentColor" />
+      <circle cx="760" cy="30" r="2.5" className="text-accent" fill="currentColor" />
     </>
   ),
   // Guilloché — two interweaving waves, the classic security-print /
@@ -38,7 +38,7 @@ const motifs: Record<SectionSlug, React.ReactNode> = {
     <>
       <path d={sinePath(15, 40, 0, 6)} className="text-accent" stroke="currentColor" strokeWidth={1} fill="none" />
       <path d={sinePath(15, 40, Math.PI, 6)} className="text-accent-dim" stroke="currentColor" strokeWidth={1} fill="none" />
-      <path d={sinePath(8, 40, Math.PI / 2, 11)} className="text-ice" stroke="currentColor" strokeWidth={0.75} fill="none" />
+      <path d={sinePath(8, 40, Math.PI / 2, 11)} className="text-faint" stroke="currentColor" strokeWidth={0.75} fill="none" />
       <path d="M0 40h1200" className="text-line" stroke="currentColor" strokeWidth={0.5} />
     </>
   ),
@@ -74,7 +74,7 @@ const motifs: Record<SectionSlug, React.ReactNode> = {
         />
       ))}
       {[3, 7, 10].map((i) => (
-        <circle key={i} cx={60 + i * 90} cy="40" r="4" className="text-ice" fill="currentColor" />
+        <circle key={i} cx={60 + i * 90} cy="40" r="4" className="text-accent" fill="currentColor" />
       ))}
     </>
   ),

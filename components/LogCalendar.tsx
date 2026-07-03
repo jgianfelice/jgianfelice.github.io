@@ -16,7 +16,7 @@ const isoOf = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}
 
 // Month-view calendar for one log track. Opens on the current month and
 // scrolls back through past months; any day with an entry is marked with a
-// white circle and links to that day's log. Days without entries are inert.
+// filled dark circle and links to that day's log. Days without entries are inert.
 export default function LogCalendar({
   category,
   entries,
@@ -99,7 +99,7 @@ export default function LogCalendar({
                 aria-label={`${MONTH_NAMES[view.m]} ${day}: ${title}`}
                 className="group flex aspect-square items-center justify-center"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white font-mono text-sm font-medium text-base transition-transform duration-300 ease-editorial group-hover:scale-110">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-ink font-mono text-sm font-medium text-elevated transition-transform duration-300 ease-editorial group-hover:scale-110">
                   {day}
                 </span>
               </Link>

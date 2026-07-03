@@ -12,9 +12,7 @@ import {
 } from '@react-three/drei';
 import {
   EffectComposer,
-  Bloom,
   ChromaticAberration,
-  Vignette,
   Noise,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
@@ -28,16 +26,19 @@ import * as THREE from 'three';
 // holding the chart, and only the chart: no text, no chrome — just the
 // object. Titles surface beside each crystal as the camera arrives.
 
-const BLUE = '#7FB6E6';      // up candles / accents
-const BLUE_HOT = '#DCEEFF';  // bright glints (equity line, head) — blooms
-const BLUE_DIM = '#3E6E99';  // down candles / ghosted index
-const ICE = '#BFE0F5';       // crystal tint
-const INK = '#EAF2FB';       // near-white text
-const BG = '#0E1620';        // muted blue-grey void
+// Light "concrete + ice" scene: a pale cool-grey field with frosted-glass
+// crystals and dark graphite objects sealed inside. Emphasis now reads DARKER
+// (not brighter) — there is no glow to lean on, so contrast does the work.
+const GRAPH = '#3C434B';        // primary graphite — up candles / emblems
+const GRAPH_STRONG = '#1E2227'; // darkest emphasis — equity line, hover marks
+const GRAPH_SOFT = '#9AA1A8';   // receded grey — down candles / ghosted index
+const ICE = '#CBD3DA';          // cool crystal tint
+const INK = '#24272C';          // near-black cool text
+const BG = '#E8EAED';           // pale cool-grey concrete field
 
-// igloo.inc's typeface — IBM Plex Mono, for every word in the scene.
-const FONT_MONO = '/fonts/IBMPlexMono-Medium.ttf';
-const FONT_MONO_REG = '/fonts/IBMPlexMono-Regular.ttf';
+// Geist Mono — the display typeface, for every word in the scene.
+const FONT_MONO = '/fonts/GeistMono-Medium.ttf';
+const FONT_MONO_REG = '/fonts/GeistMono-Regular.ttf';
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -135,7 +136,7 @@ function CandleChart({
   return (
     <group scale={scale} position={[0, -0.55, 0]}>
       {candles.map((c, i) => {
-        const col = c.up ? BLUE : BLUE_DIM;
+        const col = c.up ? GRAPH : GRAPH_SOFT;
         return (
           <group
             key={i}
@@ -153,9 +154,8 @@ function CandleChart({
               <boxGeometry args={[0.075, c.bH, 0.075]} />
               <meshStandardMaterial
                 color={col}
-                emissive={col}
-                emissiveIntensity={c.up ? 0.9 : 0.5}
-                roughness={0.3}
+                roughness={0.55}
+                metalness={0.05}
               />
             </mesh>
           </group>
@@ -164,7 +164,7 @@ function CandleChart({
       {/* @ts-ignore - drawRange-animated equity line */}
       <line ref={lineRef as any}>
         <primitive object={lineGeo} attach="geometry" />
-        <lineBasicMaterial color={BLUE_HOT} transparent opacity={0.95} />
+        <lineBasicMaterial color={GRAPH_STRONG} transparent opacity={0.95} />
       </line>
     </group>
   );
@@ -180,8 +180,10 @@ function Emblem({ kind, introRef }: { kind: number; introRef: React.MutableRefOb
       ref.current.scale.setScalar(e);
     }
   });
-  const mat = (c: string, i = 0.8) => (
-    <meshStandardMaterial color={c} emissive={c} emissiveIntensity={i} roughness={0.25} />
+  // Lit graphite solids — no emissive; contrast against the pale field reads
+  // them. (Second arg kept for call-site compatibility, intentionally unused.)
+  const mat = (c: string, _i = 0.8) => (
+    <meshStandardMaterial color={c} roughness={0.5} metalness={0.06} />
   );
   return (
     <group ref={ref}>
@@ -190,7 +192,7 @@ function Emblem({ kind, introRef }: { kind: number; introRef: React.MutableRefOb
         // Certifications — a faceted seal/gem
         <mesh rotation={[0.3, 0, 0]}>
           <octahedronGeometry args={[0.62, 0]} />
-          {mat(BLUE, 0.7)}
+          {mat(GRAPH, 0.7)}
         </mesh>
       )}
       {kind === 2 && (
@@ -199,7 +201,7 @@ function Emblem({ kind, introRef }: { kind: number; introRef: React.MutableRefOb
           {[0.4, 0.7, 1.0, 1.3].map((h, i) => (
             <mesh key={i} position={[(i - 1.5) * 0.34, h / 2, 0]}>
               <boxGeometry args={[0.22, h, 0.22]} />
-              {mat(i % 2 ? BLUE : BLUE_HOT, 0.8)}
+              {mat(i % 2 ? GRAPH : GRAPH_STRONG, 0.8)}
             </mesh>
           ))}
         </group>
@@ -213,14 +215,14 @@ function Emblem({ kind, introRef }: { kind: number; introRef: React.MutableRefOb
         <group>
           <mesh>
             <icosahedronGeometry args={[0.42, 0]} />
-            {mat(BLUE_HOT, 1.0)}
+            {mat(GRAPH_STRONG, 1.0)}
           </mesh>
           {[0, 1, 2, 3, 4].map((i) => {
             const a = (i / 5) * Math.PI * 2;
             return (
               <mesh key={i} position={[Math.cos(a) * 0.85, Math.sin(a) * 0.6, Math.sin(a) * 0.4]}>
                 <sphereGeometry args={[0.07, 12, 12]} />
-                {mat(BLUE, 0.9)}
+                {mat(GRAPH, 0.9)}
               </mesh>
             );
           })}
@@ -243,12 +245,12 @@ function LineGraph() {
       {/* @ts-ignore */}
       <line>
         <primitive object={geo} attach="geometry" />
-        <lineBasicMaterial color={BLUE_HOT} />
+        <lineBasicMaterial color={GRAPH_STRONG} />
       </line>
       {pts.map((p, i) => (
         <mesh key={i} position={p}>
           <sphereGeometry args={[0.045, 10, 10]} />
-          <meshStandardMaterial color={BLUE} emissive={BLUE} emissiveIntensity={0.9} />
+          <meshStandardMaterial color={GRAPH} roughness={0.5} metalness={0.06} />
         </mesh>
       ))}
     </group>
@@ -314,10 +316,10 @@ function Crystal({
             attenuationDistance={8}
           />
         </mesh>
-        {/* Bright fresnel-ish wire to catch bloom on the facets */}
+        {/* Fine graphite wire tracing the facet edges */}
         <mesh rotation={rot} scale={1.001} raycast={() => null}>
           <dodecahedronGeometry args={[size, 0]} />
-          <meshBasicMaterial color={BLUE_HOT} wireframe transparent opacity={0.08} />
+          <meshBasicMaterial color={GRAPH_STRONG} wireframe transparent opacity={0.08} />
         </mesh>
       </Float>
     </group>
@@ -379,7 +381,7 @@ function SectionLabel({
         fillOpacity={0}
         anchorX={side < 0 ? 'right' : 'left'}
         anchorY="middle"
-        color={BLUE_DIM}
+        color={GRAPH_SOFT}
         position={[0, 1.5, -0.5]}
       >
         {section.index}
@@ -406,7 +408,7 @@ function SectionLabel({
         maxWidth={5.4}
         anchorX={side < 0 ? 'right' : 'left'}
         anchorY="top"
-        color={BLUE_HOT}
+        color={GRAPH_STRONG}
         position={[0, -0.8, 0]}
       >
         {section.desc}
@@ -525,14 +527,12 @@ function HeroCrystal({
 }) {
   const grp = useRef<THREE.Group>(null);
   const dir = useRef<THREE.Group>(null);
-  const light = useRef<THREE.PointLight>(null);
   const [hover, setHover] = useState<number | null>(null);
   const panelRefs = useRef<THREE.Mesh[]>([]);
   const edgeRefs = useRef<THREE.LineSegments[]>([]);
   const leaderRefs = useRef<THREE.LineSegments[]>([]);
   const labelRefs = useRef<any[]>([]);
   const amt = useRef<number[]>(sections.map(() => 0));
-  const lightPos = useRef(new THREE.Vector3());
 
   // Orient the crystal face-on (one face dead-centre over the chart),
   // then take the five faces ringing it — those become the menu. The
@@ -611,25 +611,20 @@ function HeroCrystal({
     // Hover (mouse) takes precedence; a tapped face (touch) persists.
     const sel = hover !== null ? hover : picked;
     const t = state.clock.elapsedTime;
-    let maxA = 0;
-    let hi = 0;
     picks.forEach((_, i) => {
       const target = active && sel === i ? 1 : 0;
       amt.current[i] = THREE.MathUtils.damp(amt.current[i], target, 10, delta);
       const a = amt.current[i];
-      if (a > maxA) {
-        maxA = a;
-        hi = i;
-      }
-      // staggered breath at rest → bright flare on hover. The edge outline
-      // is the discoverability cue (it reads on any GPU, against dark sky or
-      // bright ice); the surface fill is a softer secondary glow.
+      // staggered breath at rest → a soft dark wash on select. The edge
+      // outline is the discoverability cue (a fine graphite line on the pale
+      // ice); the surface fill is a softer secondary tint. On this light field
+      // emphasis is DARK, so the fill stays light — a hint, not a black panel.
       const breath = 0.5 + 0.5 * Math.sin(t * 0.9 + i * 1.25);
-      const idleFill = active ? 0.06 + 0.06 * breath : 0;
-      const idleEdge = active ? 0.24 + 0.18 * breath : 0;
+      const idleFill = active ? 0.04 + 0.04 * breath : 0;
+      const idleEdge = active ? 0.28 + 0.16 * breath : 0;
       const panel = panelRefs.current[i];
       if (panel) {
-        (panel.material as THREE.MeshBasicMaterial).opacity = idleFill * (1 - a) + 0.9 * a;
+        (panel.material as THREE.MeshBasicMaterial).opacity = idleFill * (1 - a) + 0.3 * a;
       }
       const edge = edgeRefs.current[i];
       if (edge) {
@@ -646,12 +641,6 @@ function HeroCrystal({
         lab.__o = a;
       }
     });
-
-    if (light.current) {
-      lightPos.current.copy(picks[hi].center).multiplyScalar(1.4);
-      light.current.position.lerp(lightPos.current, 0.3);
-      light.current.intensity = maxA * 22;
-    }
   });
 
   return (
@@ -684,15 +673,14 @@ function HeroCrystal({
               attenuationDistance={8}
             />
           </mesh>
-          {/* bright wire to catch bloom on the facets */}
+          {/* fine graphite wire tracing the facet edges */}
           <mesh scale={1.001} raycast={() => null}>
             <dodecahedronGeometry args={[HERO_SIZE, 0]} />
-            <meshBasicMaterial color={BLUE_HOT} wireframe transparent opacity={0.08} />
+            <meshBasicMaterial color={GRAPH_STRONG} wireframe transparent opacity={0.14} />
           </mesh>
 
-          {/* The directory — five real faces, lit on hover. */}
+          {/* The directory — five real faces, marked on hover/tap. */}
           <group ref={dir} visible={false}>
-            <pointLight ref={light} color={BLUE_HOT} distance={9} decay={1.5} intensity={0} />
             {picks.map((f, i) => {
               const sec = sections[i];
               const lpos = labelPos[i];
@@ -733,13 +721,11 @@ function HeroCrystal({
                       <bufferAttribute attach="attributes-position" args={[f.verts, 3]} />
                     </bufferGeometry>
                     <meshBasicMaterial
-                      color={BLUE_HOT}
+                      color={GRAPH_STRONG}
                       transparent
                       opacity={0}
                       side={THREE.DoubleSide}
                       depthWrite={false}
-                      toneMapped={false}
-                      blending={THREE.AdditiveBlending}
                     />
                   </mesh>
 
@@ -755,11 +741,9 @@ function HeroCrystal({
                       <bufferAttribute attach="attributes-position" args={[f.outline, 3]} />
                     </bufferGeometry>
                     <lineBasicMaterial
-                      color={BLUE_HOT}
+                      color={GRAPH_STRONG}
                       transparent
                       opacity={0}
-                      toneMapped={false}
-                      blending={THREE.AdditiveBlending}
                       depthWrite={false}
                     />
                   </lineSegments>
@@ -778,9 +762,7 @@ function HeroCrystal({
                       color={INK}
                       transparent
                       opacity={0}
-                      toneMapped={false}
                       depthWrite={false}
-                      blending={THREE.AdditiveBlending}
                     />
                   </lineSegments>
 
@@ -830,10 +812,12 @@ function World({
 
   return (
     <>
-      <ambientLight intensity={0.5} color={'#9fc6ec'} />
-      <hemisphereLight args={['#dcefff', BG, 0.6]} />
-      <pointLight position={[6, 6, 6]} intensity={40} color={BLUE_HOT} distance={60} decay={1.5} />
-      <pointLight position={[-8, -2, 2]} intensity={20} color={BLUE} distance={50} decay={1.6} />
+      {/* Bright, even, cool-neutral light so the graphite objects read as
+          solid darks and the glass picks up clean specular highlights. */}
+      <ambientLight intensity={0.9} color={'#ffffff'} />
+      <hemisphereLight args={['#ffffff', '#ced4da', 0.55]} />
+      <pointLight position={[6, 7, 6]} intensity={26} color={'#ffffff'} distance={60} decay={1.4} />
+      <pointLight position={[-8, -2, 3]} intensity={12} color={'#e7ecf1'} distance={50} decay={1.5} />
 
       {/* Hero crystal — the chart sealed in ice, and the site's directory:
           five of the crystal's real faces light up under the cursor. */}
@@ -862,11 +846,13 @@ function World({
         />
       ))}
 
+      {/* A mostly-light environment with one mid-grey panel — the crystals
+          need a darker reflection to refract, or they vanish into the field. */}
       <Environment resolution={512} frames={1}>
         <color attach="background" args={[BG]} />
-        <Lightformer intensity={1.6} position={[0, 5, -6]} scale={[12, 12, 1]} color={'#eaf6ff'} />
-        <Lightformer intensity={1.1} position={[-6, 1, 3]} scale={[8, 8, 1]} color={BLUE} />
-        <Lightformer intensity={1.0} position={[6, -2, 3]} scale={[8, 8, 1]} color={'#9fc6ec'} />
+        <Lightformer intensity={1.5} position={[0, 5, -6]} scale={[12, 12, 1]} color={'#ffffff'} />
+        <Lightformer intensity={1.0} position={[-6, 1, 3]} scale={[8, 8, 1]} color={'#aeb6bf'} />
+        <Lightformer intensity={1.0} position={[6, -2, 3]} scale={[8, 8, 1]} color={'#eef2f6'} />
       </Environment>
     </>
   );
@@ -1051,21 +1037,17 @@ export default function MarketSurface({
           <CameraRig keyframes={keyframes} scrollRef={scrollRef} pointer={pointer} />
           <World sections={sections} scrollRef={scrollRef} picked={picked} onPick={pick} />
 
+          {/* No Bloom/Vignette on a light field — they'd wash the pale
+              background to white and dirty the corners. Contrast does the work;
+              a faint chromatic edge and grain keep the glass and texture. */}
           <EffectComposer>
-            <Bloom
-              intensity={0.7}
-              luminanceThreshold={0.25}
-              luminanceSmoothing={0.5}
-              mipmapBlur
-            />
             <ChromaticAberration
               blendFunction={BlendFunction.NORMAL}
-              offset={new THREE.Vector2(0.0014, 0.0014)}
+              offset={new THREE.Vector2(0.0005, 0.0005)}
               radialModulation={false}
               modulationOffset={0}
             />
-            <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.04} />
-            <Vignette eskil={false} offset={0.3} darkness={0.82} />
+            <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.035} />
           </EffectComposer>
         </Canvas>
       )}

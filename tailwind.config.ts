@@ -5,19 +5,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Cool ink-black base, frosted off-white ink, light-blue accent —
-        // the palette of the ice hero, carried across every page.
-        base: '#0B1017',
-        surface: '#10161F',
-        elevated: '#161E29',
-        line: '#243040',
-        ink: '#EAF2FB',
-        muted: '#8FA6BC',
-        faint: '#54657A',
-        accent: '#7FB6E6', // light blue — the crystal's own tone
-        'accent-dim': '#3E6E99',
-        ice: '#BFE0F5',
-        frost: '#DCEEFF',
+        // Light "concrete + ice" system (igloo.inc): a pale cool-grey field,
+        // near-white panels, cool charcoal ink, graphite accents. Near-
+        // monochrome — hierarchy comes from weight and darkness, not hue.
+        base: '#E8EAED',      // pale cool-grey field (page)
+        surface: '#F2F3F5',   // panels / cards
+        elevated: '#FAFBFC',  // raised / near-white
+        line: '#D4D8DE',      // hairlines / borders
+        ink: '#262A30',       // primary text — cool charcoal
+        muted: '#5C636B',     // secondary text
+        faint: '#8C939B',     // tertiary / labels
+        accent: '#2C333B',    // graphite — links, eyebrows, emphasis
+        'accent-dim': '#6A727B',
+        ice: '#C6CDD4',       // cool light grey — motif marks
+        frost: '#EDF0F3',     // lightest cool wash
       },
       fontFamily: {
         // Serif display for headlines, clean grotesque for body.

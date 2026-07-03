@@ -1,13 +1,18 @@
 import type { Metadata } from 'next';
-import { IBM_Plex_Mono, Inter } from 'next/font/google';
+import localFont from 'next/font/local';
+import { Inter } from 'next/font/google';
 import './globals.css';
 
-// The exact pairing igloo.inc ships: IBM Plex Mono for the display/UI
-// voice, Inter for body. Both are open-source (SIL OFL).
-const plexMono = IBM_Plex_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-plex-mono',
+// Geist Mono is the display/UI voice — a precise, engineered monospace that
+// carries the same technical vibe as before but with more character. Loaded
+// locally from the bundled TTFs (also used by the WebGL hero via troika), so
+// there's no webfont round-trip. Inter stays as the quiet body companion.
+const geistMono = localFont({
+  src: [
+    { path: '../public/fonts/GeistMono-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/GeistMono-Medium.ttf', weight: '500', style: 'normal' },
+  ],
+  variable: '--font-geist-mono',
   display: 'swap',
 });
 
@@ -35,7 +40,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${plexMono.variable} ${inter.variable}`}>
+    <html lang="en" className={`${geistMono.variable} ${inter.variable}`}>
       <body className="grain">{children}</body>
     </html>
   );
