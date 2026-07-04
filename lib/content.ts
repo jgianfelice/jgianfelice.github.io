@@ -10,6 +10,7 @@ import {
   type RichText,
 } from './notion';
 import { sanitizeBlocks, stripEmoji, stripEmojiBlocks, cleanTitle } from './sanitize';
+import { projectTitle } from './projectExtras';
 import { p, rt } from './blocks';
 import {
   LEARNING_FALLBACK,
@@ -551,9 +552,11 @@ const byTitle = (a: { title: string }, b: { title: string }) =>
 export async function loadProjects(): Promise<ProjectSummary[]> {
   const children = await getChildPages(NOTION_PAGES.projects);
   if (!children.length) {
-    return PROJECT_FALLBACK.map((p) => ({ id: p.id, title: p.title, blurb: p.blurb })).sort(
-      byTitle
-    );
+    return PROJECT_FALLBACK.map((p) => ({
+      id: p.id,
+      title: projectTitle(p.title),
+      blurb: p.blurb,
+    })).sort(byTitle);
   }
   const projects = await Promise.all(
     children.map(async (c) => {
@@ -563,7 +566,7 @@ export async function loadProjects(): Promise<ProjectSummary[]> {
         | undefined;
       return {
         id: c.id,
-        title: cleanTitle(c.title),
+        title: projectTitle(cleanTitle(c.title)),
         blurb: firstP ? plain(firstP.text) : '',
       };
     })
@@ -577,15 +580,15 @@ export async function loadProject(
   const entry = await getEntry(id);
   if (entry.title && entry.blocks.length) {
     return {
-      title: cleanTitle(entry.title),
+      title: projectTitle(cleanTitle(entry.title)),
       blocks: sanitizeBlocks(entry.blocks, { dropStatus: true }),
     };
   }
   const fb = PROJECT_FALLBACK.find((p) => p.id === id);
-  if (fb) return { title: fb.title, blocks: fb.body };
+  if (fb) return { title: projectTitle(fb.title), blocks: fb.body };
   if (entry.title || entry.blocks.length) {
     return {
-      title: cleanTitle(entry.title || 'Untitled'),
+      title: projectTitle(cleanTitle(entry.title || 'Untitled')),
       blocks: sanitizeBlocks(entry.blocks, { dropStatus: true }),
     };
   }

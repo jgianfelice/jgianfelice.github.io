@@ -36,9 +36,9 @@ const ICE = '#CBD3DA';          // cool crystal tint
 const INK = '#24272C';          // near-black cool text
 const BG = '#E8EAED';           // pale cool-grey concrete field
 
-// Geist Mono — the display typeface, for every word in the scene.
-const FONT_MONO = '/fonts/GeistMono-Medium.ttf';
-const FONT_MONO_REG = '/fonts/GeistMono-Regular.ttf';
+// Space Grotesk — the UI/label voice, for every word in the scene.
+const FONT_MONO = '/fonts/SpaceGrotesk-Medium.ttf';
+const FONT_MONO_REG = '/fonts/SpaceGrotesk-Regular.ttf';
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -984,9 +984,18 @@ export default function MarketSurface({
 
   useEffect(() => {
     setMounted(true);
+    // Cache the scroll range. On mobile the URL bar collapses on first scroll,
+    // which changes window.innerHeight; recomputing the range every scroll would
+    // re-map progress and jerk the camera mid-intro (the "zoom in/out glitch").
+    // So the range is recomputed only on a real WIDTH change (or a settle pass),
+    // never on height-only changes.
+    let maxH = 1;
+    let lastW = typeof window !== 'undefined' ? window.innerWidth : 0;
+    const recompute = () => {
+      maxH = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    };
     const onScroll = () => {
-      const max = document.body.scrollHeight - window.innerHeight;
-      const p = max > 0 ? window.scrollY / max : 0;
+      const p = Math.min(1, Math.max(0, window.scrollY / maxH));
       scrollRef.current = p;
       setInteractive(p < HERO_END);
       let idx: number;
@@ -1005,15 +1014,32 @@ export default function MarketSurface({
       }
       onSceneChange?.(idx);
     };
+    const onResize = () => {
+      if (window.innerWidth !== lastW) {
+        lastW = window.innerWidth;
+        recompute();
+        onScroll();
+      }
+    };
     const onMove = (e: MouseEvent) => {
       pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
     };
+    recompute();
     onScroll();
+    // Re-measure once the layout has settled (fonts, mobile chrome), without
+    // moving the camera if we're still parked at the top.
+    const settle = window.setTimeout(() => {
+      recompute();
+      onScroll();
+    }, 500);
     window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onResize);
     window.addEventListener('mousemove', onMove, { passive: true });
     return () => {
+      window.clearTimeout(settle);
       window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onResize);
       window.removeEventListener('mousemove', onMove);
     };
   }, [onSceneChange]);

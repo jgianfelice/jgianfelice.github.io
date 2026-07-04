@@ -35,6 +35,7 @@ export default async function LogEntryPage({
 
   return (
     <PageShell
+      slug="logs"
       eyebrow={
         <Link href={`/logs/${category.slug}/`} className={link}>
           ← {category.title}
@@ -44,7 +45,7 @@ export default async function LogEntryPage({
       footer={
         <div className="flex items-center justify-between gap-4">
           <Link href={`/logs/${category.slug}/`} className={link}>
-            ← Back to {category.title}
+            Back to {category.title}
           </Link>
           <BackHome />
         </div>

@@ -41,6 +41,7 @@ export default async function LearningTopicPage({
 
   return (
     <PageShell
+      slug="learning"
       eyebrow={
         <Link href="/learning/" className={link}>
           ← {meta.title}
@@ -51,7 +52,7 @@ export default async function LearningTopicPage({
       footer={
         <div className="flex items-center justify-between gap-4">
           <Link href="/learning/" className={link}>
-            ← All {meta.title}
+            All {meta.title}
           </Link>
           <BackHome />
         </div>

@@ -24,28 +24,30 @@ export default function Nav() {
 
   return (
     <>
-      <header className="fixed top-0 inset-x-0 z-50 mix-blend-difference">
-        <nav className="container-editorial flex items-center justify-between h-20">
+      {/* A soft top scrim keeps the mark and links legible as content scrolls
+          under the fixed bar, without a hard header rule. */}
+      <header className="fixed inset-x-0 top-0 z-50 bg-gradient-to-b from-base via-base/80 to-transparent">
+        <nav className="container-editorial flex h-20 items-center justify-between">
           <Link
             href="/"
-            className={`font-serif text-lg tracking-tight text-ink transition-opacity ${
-              isHome ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            className={`font-mono text-[0.72rem] font-medium uppercase tracking-[0.2em] text-ink transition-colors hover:text-accent ${
+              isHome ? 'pointer-events-none opacity-0' : 'opacity-100'
             }`}
           >
-            Justin Gianfelice
+            Justin&nbsp;Gianfelice
           </Link>
 
           {!isHome && (
             <>
-              <div className="hidden md:flex items-center gap-8">
+              <div className="hidden items-center gap-7 md:flex">
                 {NAV.map((item) => {
                   const active = pathname?.startsWith(item.href);
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`text-sm link-underline transition-colors ${
-                        active ? 'text-ink' : 'text-muted hover:text-ink'
+                      className={`link-underline font-mono text-[0.72rem] uppercase tracking-[0.16em] transition-colors ${
+                        active ? 'text-accent' : 'text-muted hover:text-ink'
                       }`}
                     >
                       {item.label}
@@ -54,8 +56,6 @@ export default function Nav() {
                 })}
               </div>
 
-              {/* Mobile toggle — just strokes, so it reads fine through the
-                  blend against any backdrop. */}
               <button
                 type="button"
                 onClick={() => setOpen((o) => !o)}
@@ -64,11 +64,7 @@ export default function Nav() {
                 className="-mr-2 flex h-10 w-10 items-center justify-center text-ink md:hidden"
               >
                 <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  {open ? (
-                    <path d="M5 5l12 12M17 5L5 17" />
-                  ) : (
-                    <path d="M3 7h16M3 15h16" />
-                  )}
+                  {open ? <path d="M5 5l12 12M17 5L5 17" /> : <path d="M3 7h16M3 15h16" />}
                 </svg>
               </button>
             </>
@@ -76,34 +72,40 @@ export default function Nav() {
         </nav>
       </header>
 
-      {/* Mobile menu overlay — kept OUT of the blended header so its panel
-          renders as a solid surface, not an inverted one. */}
+      {/* Mobile menu overlay — a solid surface, editorial list with the active
+          item in Fraunces. */}
       {!isHome && (
         <div
           className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
-            open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+            open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
           }`}
         >
           <div
-            className="absolute inset-0 bg-base/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-base/70 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <nav className="absolute inset-x-0 top-0 border-b border-line bg-surface/95 px-6 pb-8 pt-24 backdrop-blur-md">
+          <nav className="absolute inset-x-0 top-0 border-b border-line bg-elevated/95 px-6 pb-10 pt-24 backdrop-blur-md">
             <ul className="flex flex-col">
-              {NAV.map((item, i) => {
+              {NAV.map((item) => {
                 const active = pathname?.startsWith(item.href);
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
                       onClick={() => setOpen(false)}
-                      className="flex items-baseline gap-4 border-t border-line py-4 font-mono text-lg"
+                      className="group flex items-center justify-between border-t border-line py-5"
                     >
-                      <span className="text-xs tabular-nums text-faint">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <span className={active ? 'text-accent' : 'text-ink'}>
+                      <span
+                        className={`text-2xl ${
+                          active
+                            ? 'font-serif font-light italic text-accent'
+                            : 'font-mono text-ink'
+                        }`}
+                      >
                         {item.label}
+                      </span>
+                      <span className="font-mono text-muted transition-transform duration-300 group-hover:translate-x-1">
+                        →
                       </span>
                     </Link>
                   </li>

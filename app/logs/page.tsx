@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PageShell, { SectionNav } from '@/components/PageShell';
 import SectionMotif from '@/components/SectionMotif';
 import LogCategoryCard from '@/components/LogCategoryCard';
-import { LOG_CATEGORIES, loadLogCategory, sectionBySlug, SECTIONS } from '@/lib/content';
+import { LOG_CATEGORIES, loadLogCategory, sectionBySlug } from '@/lib/content';
 
 export const revalidate = 300;
 
@@ -20,7 +20,8 @@ export default async function LogsPage() {
 
   return (
     <PageShell
-      eyebrow={`${meta.index} / ${String(SECTIONS.length).padStart(2, '0')}`}
+      slug="logs"
+      align="right"
       title={meta.title}
       tagline={meta.tagline}
       footer={<SectionNav slug="logs" />}
@@ -31,7 +32,6 @@ export default async function LogsPage() {
           <LogCategoryCard
             key={c.slug}
             href={`/logs/${c.slug}/`}
-            index={String(i + 1).padStart(2, '0')}
             title={c.title}
             description={c.description}
             count={counts[i]}

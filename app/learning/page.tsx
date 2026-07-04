@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PageShell, { SectionNav } from '@/components/PageShell';
 import SectionMotif from '@/components/SectionMotif';
 import TopicCard from '@/components/TopicCard';
-import { LEARNING_TOPICS, sectionBySlug, SECTIONS } from '@/lib/content';
+import { LEARNING_TOPICS, sectionBySlug } from '@/lib/content';
 
 export const revalidate = 300;
 
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
 export default function LearningPage() {
   return (
     <PageShell
-      eyebrow={`${meta.index} / ${String(SECTIONS.length).padStart(2, '0')}`}
+      slug="learning"
       title={meta.title}
       tagline={meta.tagline}
       footer={<SectionNav slug="learning" />}
     >
       <SectionMotif slug="learning" />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 md:gap-5">
         {LEARNING_TOPICS.map((t) => (
           <TopicCard
             key={t.slug}

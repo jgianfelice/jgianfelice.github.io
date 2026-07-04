@@ -44,6 +44,7 @@ export default async function LogCategoryPage({
 
   return (
     <PageShell
+      slug="logs"
       eyebrow={
         <Link href="/logs/" className={link}>
           ← {meta.title}
@@ -54,7 +55,7 @@ export default async function LogCategoryPage({
       footer={
         <div className="flex items-center justify-between gap-4">
           <Link href="/logs/" className={link}>
-            ← All {meta.title}
+            All {meta.title}
           </Link>
           <BackHome />
         </div>

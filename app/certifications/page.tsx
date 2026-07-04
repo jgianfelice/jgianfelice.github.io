@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PageShell, { SectionNav } from '@/components/PageShell';
 import SectionMotif from '@/components/SectionMotif';
 import CertCard from '@/components/CertCard';
-import { CERTS, CERT_INTRO, sectionBySlug, SECTIONS } from '@/lib/content';
+import { CERTS, CERT_INTRO, sectionBySlug } from '@/lib/content';
 
 export const revalidate = 300;
 
@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 export default function CertificationsPage() {
   return (
     <PageShell
-      eyebrow={`${meta.index} / ${String(SECTIONS.length).padStart(2, '0')}`}
+      slug="certifications"
+      align="right"
       title={meta.title}
       tagline={meta.tagline}
       footer={<SectionNav slug="certifications" />}

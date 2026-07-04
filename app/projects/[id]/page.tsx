@@ -3,7 +3,9 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import Prose from '@/components/Prose';
 import PageShell, { BackHome } from '@/components/PageShell';
+import ProjectResources from '@/components/ProjectResources';
 import { loadProject, projectIds, sectionBySlug } from '@/lib/content';
+import { projectExtras } from '@/lib/projectExtras';
 
 export const revalidate = 300;
 export const dynamicParams = false;
@@ -33,9 +35,11 @@ export default async function ProjectPage({
 }) {
   const p = await loadProject(params.id);
   if (!p) notFound();
+  const extras = projectExtras(p.title);
 
   return (
     <PageShell
+      slug="projects"
       eyebrow={
         <Link href="/projects/" className={link}>
           ← {meta.title}
@@ -45,13 +49,14 @@ export default async function ProjectPage({
       footer={
         <div className="flex items-center justify-between gap-4">
           <Link href="/projects/" className={link}>
-            ← All {meta.title}
+            All {meta.title}
           </Link>
           <BackHome />
         </div>
       }
     >
       <Prose blocks={p.blocks} />
+      {extras && <ProjectResources extras={extras} />}
     </PageShell>
   );
 }

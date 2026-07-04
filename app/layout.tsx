@@ -1,24 +1,31 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { Inter } from 'next/font/google';
 import './globals.css';
 
-// Geist Mono is the display/UI voice — a precise, engineered monospace that
-// carries the same technical vibe as before but with more character. Loaded
-// locally from the bundled TTFs (also used by the WebGL hero via troika), so
-// there's no webfont round-trip. Inter stays as the quiet body companion.
-const geistMono = localFont({
+// Two voices, both bundled locally (no webfont round-trip, and the hero's
+// WebGL text reuses the Space Grotesk TTFs via troika):
+//   · Fraunces — an expressive high-contrast serif with optical sizing, used
+//     large for the editorial page titles. It carries the "made with care"
+//     signal a default UI font never could.
+//   · Space Grotesk — a characterful grotesque (proportional, not a mono) for
+//     labels, UI, body, and the hero. Technical, but not generic.
+const grotesk = localFont({
   src: [
-    { path: '../public/fonts/GeistMono-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../public/fonts/GeistMono-Medium.ttf', weight: '500', style: 'normal' },
+    { path: '../public/fonts/SpaceGrotesk-Light.ttf', weight: '300', style: 'normal' },
+    { path: '../public/fonts/SpaceGrotesk-Regular.ttf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/SpaceGrotesk-Medium.ttf', weight: '500', style: 'normal' },
+    { path: '../public/fonts/SpaceGrotesk-Bold.ttf', weight: '700', style: 'normal' },
   ],
-  variable: '--font-geist-mono',
+  variable: '--font-grotesk',
   display: 'swap',
 });
 
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
+const fraunces = localFont({
+  src: [
+    { path: '../public/fonts/Fraunces-Variable.ttf', weight: '300 700', style: 'normal' },
+    { path: '../public/fonts/Fraunces-Italic-Variable.ttf', weight: '300 700', style: 'italic' },
+  ],
+  variable: '--font-fraunces',
   display: 'swap',
 });
 
@@ -40,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistMono.variable} ${inter.variable}`}>
+    <html lang="en" className={`${grotesk.variable} ${fraunces.variable}`}>
       <body className="grain">{children}</body>
     </html>
   );

@@ -2,7 +2,8 @@ import type { Metadata } from 'next';
 import PageShell, { SectionNav } from '@/components/PageShell';
 import SectionMotif from '@/components/SectionMotif';
 import EntryCard from '@/components/EntryCard';
-import { loadProjects, sectionBySlug, SECTIONS } from '@/lib/content';
+import { loadProjects, sectionBySlug } from '@/lib/content';
+import { projectExtras } from '@/lib/projectExtras';
 
 export const revalidate = 300;
 
@@ -18,18 +19,18 @@ export const metadata: Metadata = {
 function ProjectsAside({ count }: { count: number }) {
   return (
     <aside className="hidden w-56 shrink-0 lg:block">
-      <div className="sticky top-32 rounded-lg border border-line bg-surface/40 p-6">
-        <div className="font-mono text-xs uppercase tracking-label text-accent">
+      <div className="sticky top-32 rounded-xl border border-line bg-elevated/50 p-6">
+        <div className="font-mono text-[0.68rem] uppercase tracking-[0.22em] text-accent">
           Index
         </div>
-        <div className="mt-3 font-mono text-5xl leading-none tabular-nums text-ink">
+        <div className="mt-2 font-serif text-6xl font-light leading-none tabular-nums text-ink">
           {String(count).padStart(2, '0')}
         </div>
-        <div className="mt-1 font-mono text-xs uppercase tracking-label text-faint">
+        <div className="mt-1 font-mono text-[0.68rem] uppercase tracking-[0.2em] text-faint">
           projects
         </div>
 
-        <div className="my-5 h-px w-full bg-line" />
+        <div className="my-6 h-px w-full bg-line" />
 
         {/* small rising-signal emblem */}
         <svg viewBox="0 0 168 64" className="w-full" aria-hidden="true">
@@ -45,7 +46,7 @@ function ProjectsAside({ count }: { count: number }) {
           <circle cx="118" cy="40" r="2.5" className="text-accent" fill="currentColor" />
         </svg>
 
-        <p className="mt-4 text-xs leading-relaxed text-muted">
+        <p className="mt-5 text-xs leading-relaxed text-muted">
           Research, tools, and studies. Built to run, not just to demo.
         </p>
       </div>
@@ -58,7 +59,7 @@ export default async function ProjectsPage() {
 
   return (
     <PageShell
-      eyebrow={`${meta.index} / ${String(SECTIONS.length).padStart(2, '0')}`}
+      slug="projects"
       title={meta.title}
       tagline={meta.tagline}
       footer={<SectionNav slug="projects" />}
@@ -67,7 +68,7 @@ export default async function ProjectsPage() {
 
       <div className="lg:flex lg:gap-16">
         <div className="min-w-0 flex-1">
-          <div className="mb-1 font-mono text-xs uppercase tracking-label text-faint lg:hidden">
+          <div className="mb-1 font-mono text-[0.7rem] uppercase tracking-[0.2em] text-faint lg:hidden">
             {projects.length} projects
           </div>
           {projects.map((p, i) => (
@@ -77,6 +78,7 @@ export default async function ProjectsPage() {
               n={i + 1}
               title={p.title}
               blurb={p.blurb}
+              tag={projectExtras(p.title)?.tag}
             />
           ))}
           <div className="border-t border-line" />

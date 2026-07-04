@@ -4,12 +4,16 @@
 
 @layer base {
   :root {
-    /* Geist Mono is the display/UI voice (so "serif" display slots now read
-       as mono), Inter is the quiet body companion. */
-    --font-serif: var(--font-geist-mono), ui-monospace, 'SFMono-Regular', monospace;
-    --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: var(--font-geist-mono), ui-monospace, 'SFMono-Regular', monospace;
+    /* Fraunces (serif) is reserved for large editorial titles; Space Grotesk
+       carries everything else — labels, UI, and body. The "mono" slot is kept
+       as a token name only; it now resolves to the grotesque. */
+    --font-serif: var(--font-fraunces), 'Iowan Old Style', Georgia, 'Times New Roman', serif;
+    --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --font-mono: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
   }
+
+  /* Let Fraunces use its optical-size axis at display sizes. */
+  .font-serif { font-optical-sizing: auto; }
 
   html {
     scroll-behavior: smooth;
