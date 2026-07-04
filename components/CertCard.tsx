@@ -1,4 +1,5 @@
 import type { CertItem } from '@/lib/content';
+import Tilt from './Tilt';
 
 // One credential as a ledger row: issuer, name, and issue date sit on the LEFT,
 // aligned with the page column; the actual certificate image sits on the RIGHT,
@@ -21,7 +22,7 @@ export default function CertCard({ cert }: { cert: CertItem }) {
         </p>
       </div>
 
-      <div className="shrink-0 self-start overflow-hidden rounded-lg border border-line bg-elevated/70 p-1.5 shadow-[0_2px_10px_-6px_rgba(16,22,31,0.25)]">
+      <Tilt max={9} className="tile shrink-0 self-start overflow-hidden p-2">
         {/* Static export with unoptimized images — a plain img keeps arbitrary
             badge aspect ratios crisp inside the fixed frame. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -31,7 +32,7 @@ export default function CertCard({ cert }: { cert: CertItem }) {
           loading="lazy"
           className="h-28 w-28 rounded-md object-contain p-2 md:h-[8.5rem] md:w-[8.5rem]"
         />
-      </div>
+      </Tilt>
     </article>
   );
 }

@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 function ProjectsAside({ count }: { count: number }) {
   return (
     <aside className="hidden w-56 shrink-0 lg:block">
-      <div className="sticky top-32 rounded-xl border border-line bg-elevated/50 p-6">
+      <div className="tile sticky top-32 p-6">
         <div className="font-mono text-[0.68rem] uppercase tracking-[0.22em] text-accent">
           Index
         </div>

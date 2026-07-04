@@ -57,7 +57,7 @@ export default function Experience({ content }: { content: HomeContent }) {
       title: 'Logs',
       desc:
         firstPara(content.logs) ||
-        'Thinking in the open — the principles and decisions that compound.',
+        'Thinking in the open: the principles and decisions that compound.',
     },
     {
       href: '/about',

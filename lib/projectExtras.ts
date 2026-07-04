@@ -8,13 +8,20 @@ export type ProjectLink = {
   kind: 'buy' | 'demo' | 'external';
 };
 
+// A prominent "here is where I finished, and over how long" block, shown at the
+// top of the project. `spark` is an optional rising trend (Numerai score).
+export type ProjectStanding = {
+  stats: { value: string; label: string }[];
+  note?: string;
+  spark?: { data: number[]; caption: string };
+};
+
 export type ProjectExtras = {
-  // Short tag shown on the projects index (e.g. "For sale", "Demo", "Live").
+  // Short tag shown on the projects index (e.g. "For sale", "Demo").
   tag?: string;
   links: ProjectLink[];
   image?: { src: string; alt: string };
-  // Optional rising sparkline (e.g. Numerai cumulative compare score).
-  spark?: { data: number[]; caption: string };
+  standing?: ProjectStanding;
 };
 
 const EXTRAS: { match: string; extras: ProjectExtras }[] = [
@@ -53,13 +60,21 @@ const EXTRAS: { match: string; extras: ProjectExtras }[] = [
       links: [
         { label: 'View on Numerai', href: 'https://numer.ai/jgianfelice', kind: 'external' },
       ],
-      // Cumulative compare score (MMC20) trend over recent rounds — rising.
-      spark: {
-        data: [
-          0.013, 0.028, 0.04, 0.038, 0.048, 0.051, 0.059, 0.074, 0.08, 0.083,
-          0.084, 0.082, 0.095, 0.103, 0.103, 0.096, 0.106,
+      standing: {
+        stats: [
+          { value: 'Top 10%', label: 'of all participants' },
+          { value: 'Top 30%', label: 'among staked competitors' },
+          { value: '~1 month', label: 'from first model to competing' },
         ],
-        caption: 'Cumulative compare score · recent rounds',
+        note: "Built a machine-learning model from scratch and entered Numerai's live tournament, where the best models trade a real hedge fund.",
+        // Cumulative compare score (MMC20) over recent rounds — a rising trend.
+        spark: {
+          data: [
+            0.013, 0.028, 0.04, 0.038, 0.048, 0.051, 0.059, 0.074, 0.08, 0.083,
+            0.084, 0.082, 0.095, 0.103, 0.103, 0.096, 0.106,
+          ],
+          caption: 'Cumulative compare score · recent rounds',
+        },
       },
     },
   },

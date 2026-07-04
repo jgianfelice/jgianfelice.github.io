@@ -46,7 +46,7 @@ export function cleanTitle(s: string): string {
 
 // Replace a spaced em/en dash (or " -- ") with a comma, but keep numeric
 // ranges (digit–digit) intact.
-function degrammarDashes(s: string): string {
+export function degrammarDashes(s: string): string {
   return s
     .replace(/(\S)\s*[—–]\s*(\S)/g, (_m, a: string, b: string) =>
       /\d/.test(a) && /\d/.test(b) ? `${a}–${b}` : `${a}, ${b}`
@@ -81,6 +81,30 @@ const DISCLAIMER =
   /(this section grows as i do|grows as i do|more being added|deliberately a moving target|added when actively in use|no finished product required|no fixed schedule|not a diary\.?\s*not a checklist)/i;
 const TRAIL_STATUS =
   /(?:[,;]\s*|,?\s*now\s+)(completed?|ongoing|in[\s-]?progress|active)\b\.?\s*$/i;
+// A leading status badge on a line, e.g. "Active | Competing…" or "Live — …".
+const LEADING_STATUS =
+  /^(completed?|in[\s-]?progress|ongoing|active|done|shipped|live|wip)\s*[|·:—–-]\s+/i;
+// A trailing status clause, e.g. "…pipeline, active competitor in live rounds".
+const TRAIL_ACTIVE = /\s*[,;]\s*(active|live|ongoing|in[\s-]?progress)\b[^.;]*$/i;
+// A leading "Current " on a status-y heading ("Current Standing" → "Standing").
+const LEADING_CURRENT = /^current\s+/i;
+
+// Emoji + de-grammar only, structure-preserving — no disclaimer/status drops.
+// Used for the home payload feeding the hero and its mobile tap previews, so
+// section descriptions lose their em-dashes without losing whole paragraphs.
+export function cleanBlocks(blocks: Block[]): Block[] {
+  return blocks.map((b) => {
+    if ('text' in b && Array.isArray((b as { text?: RichText[] }).text)) {
+      const src = (b as { text: RichText[] }).text;
+      const isHeading = b.type === 'h1' || b.type === 'h2' || b.type === 'h3';
+      const runs = isHeading
+        ? src.map((r) => ({ ...r, content: stripEmoji(r.content) }))
+        : sanitizeRuns(src);
+      return { ...(b as object), text: runs } as Block;
+    }
+    return b;
+  });
+}
 
 const textOf = (b: Block): string => {
   const t = (b as { text?: RichText[] }).text;
@@ -116,10 +140,19 @@ export function sanitizeBlocks(blocks: Block[], opts: SanitizeOpts = {}): Block[
       const runs = isHeading
         ? src.map((r) => ({ ...r, content: stripEmoji(r.content) }))
         : sanitizeRuns(src);
-      if (opts.dropStatus && !isHeading && runs.length) {
-        const last = runs[runs.length - 1];
-        const fixed = last.content.replace(TRAIL_STATUS, '.');
-        if (fixed !== last.content) runs[runs.length - 1] = { ...last, content: fixed };
+      if (opts.dropStatus && runs.length) {
+        if (isHeading) {
+          // "Current Standing" → "Standing" (drop the active-implying lead).
+          runs[0] = { ...runs[0], content: runs[0].content.replace(LEADING_CURRENT, '') };
+        } else {
+          // Strip a leading status badge ("Active | …") and a trailing status
+          // clause ("…, active competitor in live rounds"), plus the older
+          // ", now complete" trailer.
+          runs[0] = { ...runs[0], content: runs[0].content.replace(LEADING_STATUS, '') };
+          const li = runs.length - 1;
+          const cleaned = runs[li].content.replace(TRAIL_STATUS, '.').replace(TRAIL_ACTIVE, '');
+          if (cleaned !== runs[li].content) runs[li] = { ...runs[li], content: cleaned };
+        }
       }
       out.push({ ...(b as object), text: runs } as Block);
     } else {

@@ -57,6 +57,40 @@
   .container-editorial {
     @apply max-w-wide mx-auto px-6 md:px-12;
   }
+
+  /* A frosted glass/ice tile — a top inner highlight and a soft cast shadow
+     give real depth, so panels read as objects in the crystal's 3D world
+     rather than flat cards. */
+  .tile {
+    @apply rounded-xl border border-line;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 42%, rgba(198, 205, 212, 0.1)),
+      rgba(250, 251, 252, 0.55);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.7),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 1px 2px rgba(16, 22, 31, 0.05),
+      0 16px 34px -18px rgba(16, 22, 31, 0.28);
+    backdrop-filter: blur(3px);
+  }
+
+  /* Cards that lift and cast a deeper shadow on hover, as if rising off the
+     page. Pair with .tile. */
+  .tile-lift {
+    transition:
+      transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      border-color 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+  }
+  .tile-lift:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+      0 2px 4px rgba(16, 22, 31, 0.06),
+      0 26px 46px -20px rgba(16, 22, 31, 0.34);
+  }
 }
 
 /* Grain overlay — a faint concrete tooth over the pale field */

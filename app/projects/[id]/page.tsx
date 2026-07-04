@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Prose from '@/components/Prose';
 import PageShell, { BackHome } from '@/components/PageShell';
 import ProjectResources from '@/components/ProjectResources';
+import ProjectStanding from '@/components/ProjectStanding';
 import { loadProject, projectIds, sectionBySlug } from '@/lib/content';
 import { projectExtras } from '@/lib/projectExtras';
 
@@ -55,6 +56,7 @@ export default async function ProjectPage({
         </div>
       }
     >
+      {extras?.standing && <ProjectStanding standing={extras.standing} />}
       <Prose blocks={p.blocks} />
       {extras && <ProjectResources extras={extras} />}
     </PageShell>

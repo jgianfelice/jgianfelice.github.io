@@ -115,10 +115,7 @@ export default function Prose({ blocks }: { blocks: Block[] }) {
         break;
       case 'callout':
         out.push(
-          <div
-            key={i}
-            className="my-8 flex gap-3 rounded-lg border border-line bg-elevated/60 px-5 py-4"
-          >
+          <div key={i} className="tile my-8 flex gap-3 px-5 py-4">
             {b.emoji && <span className="select-none text-lg leading-6">{b.emoji}</span>}
             <div className="text-sm leading-relaxed text-muted">
               <Runs runs={b.text} />

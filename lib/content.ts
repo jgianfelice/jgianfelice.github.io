@@ -9,7 +9,7 @@ import {
   type HomeContent,
   type RichText,
 } from './notion';
-import { sanitizeBlocks, stripEmoji, stripEmojiBlocks, cleanTitle } from './sanitize';
+import { sanitizeBlocks, stripEmoji, cleanBlocks, degrammarDashes, cleanTitle } from './sanitize';
 import { projectTitle } from './projectExtras';
 import { p, rt } from './blocks';
 import {
@@ -607,17 +607,21 @@ export async function projectIds(): Promise<string[]> {
 // everywhere, and the raw payload carries a couple (in non-rendered headings),
 // so strip emoji from every field. This is emoji-ONLY: dashes, disclaimers, and
 // paragraph structure are left intact so the hero's scene text is unchanged.
+const cleanStr = (s: string) => degrammarDashes(stripEmoji(s));
+
 export async function loadHomeContent(): Promise<HomeContent> {
   const c = await getHomeContent();
+  // Emoji + em-dash cleanup on everything that feeds the hero scene and its
+  // mobile tap previews — so the section descriptions read cleanly there too.
   return {
     ...c,
-    heroIntro: stripEmoji(c.heroIntro),
-    heroQuote: stripEmoji(c.heroQuote),
-    projectsIntro: stripEmoji(c.projectsIntro),
-    certifications: stripEmojiBlocks(c.certifications),
-    learning: stripEmojiBlocks(c.learning),
-    logs: stripEmojiBlocks(c.logs),
-    about: stripEmojiBlocks(c.about),
+    heroIntro: cleanStr(c.heroIntro),
+    heroQuote: cleanStr(c.heroQuote),
+    projectsIntro: cleanStr(c.projectsIntro),
+    certifications: cleanBlocks(c.certifications),
+    learning: cleanBlocks(c.learning),
+    logs: cleanBlocks(c.logs),
+    about: cleanBlocks(c.about),
   };
 }
 

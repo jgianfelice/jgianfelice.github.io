@@ -59,7 +59,7 @@ export default function LogCalendar({
     'flex h-8 w-8 items-center justify-center rounded-md border border-line font-mono text-muted transition-colors hover:border-accent/50 hover:text-accent';
 
   return (
-    <div className="w-full max-w-md rounded-lg border border-line bg-surface/40 p-5 md:p-6">
+    <div className="tile w-full max-w-md p-5 md:p-6">
       <div className="mb-5 flex items-center justify-between">
         <div className="font-mono text-sm text-ink">
           {MONTH_NAMES[view.m]}{' '}
