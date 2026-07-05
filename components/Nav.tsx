@@ -84,7 +84,7 @@ export default function Nav() {
             className="absolute inset-0 bg-base/70 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <nav className="absolute inset-x-0 top-0 border-b border-line bg-elevated/95 px-6 pb-10 pt-24 backdrop-blur-md">
+          <nav className="tile absolute inset-x-3 top-3 rounded-2xl px-6 pb-10 pt-24">
             <ul className="flex flex-col">
               {NAV.map((item) => {
                 const active = pathname?.startsWith(item.href);

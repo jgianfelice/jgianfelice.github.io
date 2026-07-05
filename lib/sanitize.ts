@@ -68,6 +68,13 @@ function sanitizeRuns(runs: RichText[]): RichText[] {
         lead = ' — ';
         content = content.slice(m[0].length);
       }
+      // A status phrase opening a "Label — value" entry ("Active development.
+      // Currently using…") is a badge, not prose — drop it. Scoped to divider
+      // values only, so ordinary sentences ("monthly active users") survive.
+      content = content.replace(
+        /^(?:active|ongoing|in[ -]?progress|completed?)(?:\s+\w+)?\.\s*/i,
+        ''
+      );
     }
     return { ...r, content: lead + degrammarDashes(content) };
   });
@@ -89,6 +96,18 @@ const TRAIL_ACTIVE = /\s*[,;]\s*(active|live|ongoing|in[\s-]?progress)\b[^.;]*$/
 // A leading "Current " on a status-y heading ("Current Standing" → "Standing").
 const LEADING_CURRENT = /^current\s+/i;
 
+// One-line cleanup for standalone strings (blurbs, intros): emoji out,
+// leading "Active | …" badges and trailing ", active …" clauses out,
+// grammatical dashes to commas.
+export function cleanStatusText(s: string): string {
+  return degrammarDashes(
+    stripEmoji(s || '')
+      .replace(LEADING_STATUS, '')
+      .replace(TRAIL_ACTIVE, '')
+      .replace(TRAIL_STATUS, '.')
+  ).trim();
+}
+
 // Emoji + de-grammar only, structure-preserving — no disclaimer/status drops.
 // Used for the home payload feeding the hero and its mobile tap previews, so
 // section descriptions lose their em-dashes without losing whole paragraphs.
@@ -98,7 +117,15 @@ export function cleanBlocks(blocks: Block[]): Block[] {
       const src = (b as { text: RichText[] }).text;
       const isHeading = b.type === 'h1' || b.type === 'h2' || b.type === 'h3';
       const runs = isHeading
-        ? src.map((r) => ({ ...r, content: stripEmoji(r.content) }))
+        ? src.map((r) => ({
+            ...r,
+            // Headings keep their divider dashes but lose emoji and any
+            // trailing "(Active)"-style status parens.
+            content: stripEmoji(r.content).replace(
+              /\s*\((?:active|completed?|in[\s-]?progress|ongoing|wip)\)\s*$/i,
+              ''
+            ),
+          }))
         : sanitizeRuns(src);
       return { ...(b as object), text: runs } as Block;
     }

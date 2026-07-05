@@ -22,17 +22,24 @@ export default function CertCard({ cert }: { cert: CertItem }) {
         </p>
       </div>
 
-      <Tilt max={9} className="tile shrink-0 self-start overflow-hidden p-2">
-        {/* Static export with unoptimized images — a plain img keeps arbitrary
-            badge aspect ratios crisp inside the fixed frame. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={cert.image}
-          alt={`${cert.name} certificate`}
-          loading="lazy"
-          className="h-28 w-28 rounded-md object-contain p-2 md:h-[8.5rem] md:w-[8.5rem]"
-        />
-      </Tilt>
+      {/* The badge floats like the crystal (slow idle drift), and leans
+          toward the cursor in 3D. Stagger the drift so rows don't sync. */}
+      <div
+        className="floaty shrink-0 self-start"
+        style={{ animationDelay: `${(cert.name.length % 5) * -1.3}s` }}
+      >
+        <Tilt max={9} className="tile overflow-hidden p-2">
+          {/* Static export with unoptimized images — a plain img keeps arbitrary
+              badge aspect ratios crisp inside the fixed frame. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={cert.image}
+            alt={`${cert.name} certificate`}
+            loading="lazy"
+            className="h-28 w-28 rounded-md object-contain p-2 md:h-[8.5rem] md:w-[8.5rem]"
+          />
+        </Tilt>
+      </div>
     </article>
   );
 }

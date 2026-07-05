@@ -25,7 +25,7 @@ function Spark({ data, caption }: { data: number[]; caption: string }) {
           );
         })}
       </svg>
-      <figcaption className="mt-2.5 font-mono text-[0.66rem] uppercase tracking-[0.18em] text-faint">
+      <figcaption className="mt-2.5 font-mono text-[0.66rem] uppercase tracking-[0.18em] text-muted">
         {caption}
       </figcaption>
     </figure>
@@ -38,7 +38,7 @@ export default function ProjectStanding({ standing }: { standing: Standing }) {
   return (
     <section className="tile mb-14 rounded-2xl p-6 md:p-8">
       {standing.note && (
-        <p className="max-w-[52ch] text-sm leading-relaxed text-muted md:text-base">
+        <p className="max-w-[52ch] text-sm leading-relaxed text-ink/85 md:text-base">
           {standing.note}
         </p>
       )}
@@ -48,7 +48,7 @@ export default function ProjectStanding({ standing }: { standing: Standing }) {
             <div className="font-serif text-4xl font-light leading-none tracking-[-0.01em] text-ink md:text-5xl">
               {s.value}
             </div>
-            <div className="mt-2.5 font-mono text-[0.66rem] uppercase tracking-[0.18em] text-faint">
+            <div className="mt-2.5 font-mono text-[0.66rem] uppercase tracking-[0.18em] text-muted">
               {s.label}
             </div>
           </div>

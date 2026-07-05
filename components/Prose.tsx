@@ -117,7 +117,7 @@ export default function Prose({ blocks }: { blocks: Block[] }) {
         out.push(
           <div key={i} className="tile my-8 flex gap-3 px-5 py-4">
             {b.emoji && <span className="select-none text-lg leading-6">{b.emoji}</span>}
-            <div className="text-sm leading-relaxed text-muted">
+            <div className="text-sm leading-relaxed text-ink/80">
               <Runs runs={b.text} />
             </div>
           </div>

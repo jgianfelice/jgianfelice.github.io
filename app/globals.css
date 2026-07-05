@@ -4,12 +4,13 @@
 
 @layer base {
   :root {
-    /* Fraunces (serif) is reserved for large editorial titles; Space Grotesk
-       carries everything else — labels, UI, and body. The "mono" slot is kept
-       as a token name only; it now resolves to the grotesque. */
+    /* Fraunces (serif) is reserved for large editorial titles. Everything
+       else is Computer Modern — Knuth's LaTeX face: Serif Roman for body
+       prose, Typewriter for labels/UI/mono. The site reads like a working
+       paper set in TeX. */
     --font-serif: var(--font-fraunces), 'Iowan Old Style', Georgia, 'Times New Roman', serif;
-    --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --font-mono: var(--font-grotesk), ui-sans-serif, system-ui, sans-serif;
+    --font-sans: var(--font-cmu-serif), 'Computer Modern', Georgia, 'Times New Roman', serif;
+    --font-mono: var(--font-cmu-mono), 'Courier New', ui-monospace, monospace;
   }
 
   /* Let Fraunces use its optical-size axis at display sizes. */
@@ -19,6 +20,8 @@
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Computer Modern has a small x-height; a bump keeps prose readable. */
+    font-size: 17px;
   }
 
   body {
@@ -74,6 +77,12 @@
     backdrop-filter: blur(3px);
   }
 
+  /* Object-like elements keep a slow idle drift — the crystal's breath,
+     carried into the page. Stagger with animation-delay inline. */
+  .floaty {
+    animation: floaty 7s ease-in-out infinite;
+  }
+
   /* Cards that lift and cast a deeper shadow on hover, as if rising off the
      page. Pair with .tile. */
   .tile-lift {
@@ -107,4 +116,16 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Object-like elements (badges, tiles) keep a slow idle drift — the same
+   breath the hero crystal has. Pages themselves load whole, no staging. */
+@keyframes floaty {
+  0% { transform: translateY(0) rotate(0.001deg); }
+  50% { transform: translateY(-6px) rotate(0.001deg); }
+  100% { transform: translateY(0) rotate(0.001deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floaty { animation: none !important; }
 }

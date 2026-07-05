@@ -63,7 +63,7 @@ export default function LogCalendar({
       <div className="mb-5 flex items-center justify-between">
         <div className="font-mono text-sm text-ink">
           {MONTH_NAMES[view.m]}{' '}
-          <span className="text-faint">{view.y}</span>
+          <span className="text-muted">{view.y}</span>
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={() => step(-1)} className={navBtn} aria-label="Previous month">
@@ -77,7 +77,7 @@ export default function LogCalendar({
 
       <div className="mb-2 grid grid-cols-7 gap-1">
         {WEEKDAYS.map((d, i) => (
-          <div key={i} className="text-center font-mono text-[0.65rem] uppercase tracking-label text-faint">
+          <div key={i} className="text-center font-mono text-[0.65rem] uppercase tracking-label text-muted">
             {d}
           </div>
         ))}
@@ -121,7 +121,7 @@ export default function LogCalendar({
         })}
       </div>
 
-      <p className="mt-5 font-mono text-[0.7rem] leading-relaxed text-faint">
+      <p className="mt-5 font-mono text-[0.7rem] leading-relaxed text-muted">
         Circled dates have an entry. Use ← → to scroll back through the months.
       </p>
     </div>

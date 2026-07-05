@@ -1,8 +1,10 @@
 import Link from 'next/link';
+import Tilt from './Tilt';
 
 // A single editorial list-row for an entry (a project, a log). Reads as a
 // contents line: a faint margin index, a Fraunces title, one-line blurb, and a
-// leader arrow that nudges on hover — the quiet motion of the crystal labels.
+// leader arrow that nudges on hover. The whole row leans toward the cursor in
+// 3D — the same physicality as the crystal.
 export default function EntryCard({
   href,
   n,
@@ -21,7 +23,7 @@ export default function EntryCard({
       href={href}
       className="group block border-t border-line py-8 transition-colors duration-500 hover:border-ink/25"
     >
-      <div className="flex items-baseline gap-5 md:gap-7">
+      <Tilt max={2.5} className="flex items-baseline gap-5 md:gap-7">
         <span className="mt-1 font-mono text-[0.68rem] tabular-nums tracking-wider text-faint transition-colors duration-300 group-hover:text-accent">
           {String(n).padStart(2, '0')}
         </span>
@@ -45,7 +47,7 @@ export default function EntryCard({
         <span className="mt-1 shrink-0 font-mono text-muted transition-transform duration-300 group-hover:translate-x-1 group-hover:text-accent">
           →
         </span>
-      </div>
+      </Tilt>
     </Link>
   );
 }

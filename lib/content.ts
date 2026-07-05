@@ -9,7 +9,14 @@ import {
   type HomeContent,
   type RichText,
 } from './notion';
-import { sanitizeBlocks, stripEmoji, cleanBlocks, degrammarDashes, cleanTitle } from './sanitize';
+import {
+  sanitizeBlocks,
+  stripEmoji,
+  cleanBlocks,
+  cleanStatusText,
+  degrammarDashes,
+  cleanTitle,
+} from './sanitize';
 import { projectTitle } from './projectExtras';
 import { p, rt } from './blocks';
 import {
@@ -613,11 +620,18 @@ export async function loadHomeContent(): Promise<HomeContent> {
   const c = await getHomeContent();
   // Emoji + em-dash cleanup on everything that feeds the hero scene and its
   // mobile tap previews — so the section descriptions read cleanly there too.
+  // The projects array also gets status badges stripped and display titles
+  // applied, so no "Active |" ever ships in the payload.
   return {
     ...c,
     heroIntro: cleanStr(c.heroIntro),
     heroQuote: cleanStr(c.heroQuote),
     projectsIntro: cleanStr(c.projectsIntro),
+    projects: c.projects.map((p) => ({
+      ...p,
+      title: projectTitle(cleanTitle(p.title)),
+      blurb: cleanStatusText(p.blurb),
+    })),
     certifications: cleanBlocks(c.certifications),
     learning: cleanBlocks(c.learning),
     logs: cleanBlocks(c.logs),

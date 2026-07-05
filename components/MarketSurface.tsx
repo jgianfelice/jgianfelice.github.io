@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import {
   Text,
   Float,
@@ -37,8 +37,11 @@ const INK = '#24272C';          // near-black cool text
 const BG = '#E8EAED';           // pale cool-grey concrete field
 
 // Space Grotesk — the UI/label voice, for every word in the scene.
-const FONT_MONO = '/fonts/SpaceGrotesk-Medium.ttf';
-const FONT_MONO_REG = '/fonts/SpaceGrotesk-Regular.ttf';
+// Computer Modern — Knuth's LaTeX faces. Typewriter for instrument labels,
+// Serif Roman for in-world prose, Serif Bold for the big section titles.
+const FONT_MONO = '/fonts/cmuntt.ttf';
+const FONT_MONO_REG = '/fonts/cmunrm.ttf';
+const FONT_SERIF_BOLD = '/fonts/cmunbx.ttf';
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -74,8 +77,17 @@ const STATIONS: [number, number, number][] = [
   [-2.4, -1.0, -67],
 ];
 
-const SECTION_S = [0.17, 0.33, 0.49, 0.65, 0.81];
-const HERO_END = 0.1;
+export const SECTION_S = [0.17, 0.33, 0.49, 0.65, 0.81];
+export const HERO_END = 0.1;
+
+// Phones crop the wide crystal compositions hard, so everything in the world
+// answers to one question: is the viewport narrow? Crystals shrink to fit,
+// glass distortion calms down (the refraction doubles read as glitches when
+// cropped), and the in-world side titles hand off to an HTML overlay.
+function useNarrow(): boolean {
+  const { size } = useThree();
+  return size.width < 640 || size.width / size.height < 0.75;
+}
 
 // ── Mini candlestick chart — the thing sealed inside the hero crystal ──
 function CandleChart({
@@ -273,12 +285,14 @@ function Crystal({
 }) {
   const shell = useRef<THREE.Mesh>(null);
   const grp = useRef<THREE.Group>(null);
+  const narrow = useNarrow();
   const rng = useMemo(() => mulberry32(seed), [seed]);
   const rot = useMemo<[number, number, number]>(
     () => [rng() * Math.PI, rng() * Math.PI, rng() * Math.PI],
     [rng]
   );
   const size = big ? 2.05 : 1.7;
+  const fit = narrow ? 0.66 : 1;
 
   useFrame((state) => {
     const e = easeOut(clamp01(introRef.current));
@@ -286,7 +300,7 @@ function Crystal({
       shell.current.rotation.y += 0.0016;
       shell.current.rotation.x += 0.0007;
     }
-    if (grp.current) grp.current.scale.setScalar(0.6 + e * 0.4);
+    if (grp.current) grp.current.scale.setScalar((0.6 + e * 0.4) * fit);
   });
 
   return (
@@ -296,20 +310,22 @@ function Crystal({
         <group>{children}</group>
 
         {/* The ice shell — faceted glass with refraction + chromatic edge.
-            Kept thin and clear so the glowing object inside reads through it. */}
+            Kept thin and clear so the object inside reads through it. On
+            narrow screens the distortion calms right down: cropped refraction
+            doubles are what read as "glitches" on a phone. */}
         <mesh ref={shell} rotation={rot} raycast={() => null}>
           <dodecahedronGeometry args={[size, 0]} />
           <MeshTransmissionMaterial
             transmissionSampler
-            samples={6}
+            samples={narrow ? 4 : 6}
             thickness={0.6}
             ior={1.31}
-            chromaticAberration={0.14}
-            anisotropicBlur={0.25}
+            chromaticAberration={narrow ? 0.04 : 0.14}
+            anisotropicBlur={narrow ? 0.15 : 0.25}
             roughness={0.16}
-            distortion={0.3}
+            distortion={narrow ? 0.1 : 0.3}
             distortionScale={0.35}
-            temporalDistortion={0.08}
+            temporalDistortion={narrow ? 0.015 : 0.08}
             transmission={1}
             color={ICE}
             attenuationColor={ICE}
@@ -344,6 +360,7 @@ function SectionLabel({
   const idxRef = useRef<any>(null);
   const titleRef = useRef<any>(null);
   const descRef = useRef<any>(null);
+  const narrow = useNarrow();
 
   const anchor = useMemo(
     () => new THREE.Vector3(station[0] + side * 3.0, station[1] - 0.2, station[2] + 1.6),
@@ -372,6 +389,10 @@ function SectionLabel({
     setOp(descRef, 0.72);
   });
 
+  // Phones: the side compositions can't fit — the HTML overlay in
+  // Experience carries the section title instead.
+  if (narrow) return null;
+
   return (
     <group ref={group} position={anchor}>
       <Text
@@ -388,7 +409,7 @@ function SectionLabel({
       </Text>
       <Text
         ref={titleRef}
-        font={FONT_MONO}
+        font={FONT_SERIF_BOLD}
         fontSize={1.15}
         fillOpacity={0}
         letterSpacing={0.02}
@@ -533,6 +554,11 @@ function HeroCrystal({
   const leaderRefs = useRef<THREE.LineSegments[]>([]);
   const labelRefs = useRef<any[]>([]);
   const amt = useRef<number[]>(sections.map(() => 0));
+  const narrow = useNarrow();
+  // Shrink the whole hero on phones so the full crystal (and the chart inside
+  // it) fits the frame — cropped facets sweeping across the chart during the
+  // intro is exactly the "right side glitches out" artifact.
+  const fit = narrow ? 0.58 : 1;
 
   // Orient the crystal face-on (one face dead-centre over the chart),
   // then take the five faces ringing it — those become the menu. The
@@ -599,7 +625,7 @@ function HeroCrystal({
 
   useFrame((state, delta) => {
     const e = easeOut(clamp01(introRef.current));
-    if (grp.current) grp.current.scale.setScalar(0.6 + e * 0.4);
+    if (grp.current) grp.current.scale.setScalar((0.6 + e * 0.4) * fit);
 
     const active = scrollRef.current < HERO_END && introRef.current > 0.5;
     if (dir.current) dir.current.visible = active;
@@ -658,15 +684,15 @@ function HeroCrystal({
             <dodecahedronGeometry args={[HERO_SIZE, 0]} />
             <MeshTransmissionMaterial
               transmissionSampler
-              samples={6}
+              samples={narrow ? 4 : 6}
               thickness={0.6}
               ior={1.31}
-              chromaticAberration={0.14}
-              anisotropicBlur={0.25}
+              chromaticAberration={narrow ? 0.04 : 0.14}
+              anisotropicBlur={narrow ? 0.15 : 0.25}
               roughness={0.16}
-              distortion={0.3}
+              distortion={narrow ? 0.1 : 0.3}
               distortionScale={0.35}
-              temporalDistortion={0.08}
+              temporalDistortion={narrow ? 0.015 : 0.08}
               transmission={1}
               color={ICE}
               attenuationColor={ICE}
@@ -748,41 +774,46 @@ function HeroCrystal({
                     />
                   </lineSegments>
 
-                  {/* thin leader line drawn from the prism out to the name */}
-                  <lineSegments
-                    ref={(el) => {
-                      if (el) leaderRefs.current[i] = el as THREE.LineSegments;
-                    }}
-                    raycast={() => null}
-                  >
-                    <bufferGeometry>
-                      <bufferAttribute attach="attributes-position" args={[leader[i], 3]} />
-                    </bufferGeometry>
-                    <lineBasicMaterial
-                      color={INK}
-                      transparent
-                      opacity={0}
-                      depthWrite={false}
-                    />
-                  </lineSegments>
+                  {/* Leader line + floating name — pointer screens only. On a
+                      phone the ring of names lands outside the viewport, and
+                      the tap-preview card already carries the section name. */}
+                  {!narrow && (
+                    <>
+                      <lineSegments
+                        ref={(el) => {
+                          if (el) leaderRefs.current[i] = el as THREE.LineSegments;
+                        }}
+                        raycast={() => null}
+                      >
+                        <bufferGeometry>
+                          <bufferAttribute attach="attributes-position" args={[leader[i], 3]} />
+                        </bufferGeometry>
+                        <lineBasicMaterial
+                          color={INK}
+                          transparent
+                          opacity={0}
+                          depthWrite={false}
+                        />
+                      </lineSegments>
 
-                  {/* the section's name, at the end of the leader on hover */}
-                  <Billboard position={lpos}>
-                    <Text
-                      ref={(el) => {
-                        if (el) labelRefs.current[i] = el;
-                      }}
-                      font={FONT_MONO}
-                      fontSize={0.15}
-                      fillOpacity={0}
-                      letterSpacing={0.08}
-                      anchorX={anc}
-                      anchorY="middle"
-                      color={INK}
-                    >
-                      {sec.index}  {sec.title.toUpperCase()}
-                    </Text>
-                  </Billboard>
+                      <Billboard position={lpos}>
+                        <Text
+                          ref={(el) => {
+                            if (el) labelRefs.current[i] = el;
+                          }}
+                          font={FONT_MONO}
+                          fontSize={0.15}
+                          fillOpacity={0}
+                          letterSpacing={0.08}
+                          anchorX={anc}
+                          anchorY="middle"
+                          color={INK}
+                        >
+                          {sec.index}  {sec.title.toUpperCase()}
+                        </Text>
+                      </Billboard>
+                    </>
+                  )}
                 </group>
               );
             })}

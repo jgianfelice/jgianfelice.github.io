@@ -31,7 +31,7 @@ export default function TopicCard({
           <h3 className="font-serif text-xl font-light leading-tight text-ink md:text-2xl">
             {title}
           </h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-muted">{blurb}</p>
+          <p className="mt-2.5 text-sm leading-relaxed text-ink/75">{blurb}</p>
         </div>
       </Tilt>
     </Link>

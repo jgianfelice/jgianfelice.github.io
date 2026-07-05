@@ -6,7 +6,7 @@ import type { SectionSlug } from '@/lib/content';
 
 // A smooth sine polyline across the full band. The bands render with
 // preserveAspectRatio="none", so shapes get stretched horizontally; curves
-// (unlike the old plates) stretch gracefully and still read as intentional.
+// (unlike plates) stretch gracefully and still read as intentional.
 function sinePath(amp: number, mid: number, phase: number, cycles: number, w = 1200, step = 10): string {
   let d = '';
   for (let x = 0; x <= w; x += step) {

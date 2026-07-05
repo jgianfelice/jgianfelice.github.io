@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Nav from './Nav';
-import MarketSurface from './MarketSurface';
+import MarketSurface, { SECTION_S } from './MarketSurface';
 import type { Block, HomeContent } from '@/lib/notion';
 
 // ── The Home Experience ────────────────────────────────────────────
@@ -71,6 +71,15 @@ export default function Experience({ content }: { content: HomeContent }) {
 
   const active = scene >= 1 && scene <= 5 ? sections[scene - 1] : null;
 
+  // Fly the camera down to a section — the same smooth scroll the desktop
+  // face-click does. The mobile preview card uses this so a tap plays the
+  // flight instead of hard-navigating to the page.
+  const flyTo = (i: number) => {
+    setHeroPick(null);
+    const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo({ top: SECTION_S[i] * max, behavior: 'smooth' });
+  };
+
   return (
     <>
       <Nav />
@@ -83,7 +92,7 @@ export default function Experience({ content }: { content: HomeContent }) {
       />
 
       {/* Wordmark, pinned top-left and present from the very first frame —
-          IBM Plex Mono, uppercase, the way igloo sets its marque. */}
+          CMU Typewriter, uppercase, the way igloo sets its marque. */}
       <div className="fixed top-6 left-6 z-30 pointer-events-auto select-none animate-[fadeIn_900ms_ease-out_both]">
         <Link href="/" className="block leading-[1.2]">
           <span className="block font-mono text-[11px] uppercase tracking-label text-ink/90">
@@ -94,6 +103,23 @@ export default function Experience({ content }: { content: HomeContent }) {
           </span>
         </Link>
       </div>
+
+      {/* Phones can't fit the in-world side titles, so the section name
+          surfaces here instead — an HTML title card floating over the scene,
+          keyed so it rises fresh at every station. */}
+      {active && (
+        <div
+          key={active.title}
+          className="fixed inset-x-0 bottom-24 z-20 px-8 text-center pointer-events-none md:hidden animate-[fadeIn_600ms_ease-out_both]"
+        >
+          <div className="font-serif text-4xl font-light tracking-[-0.01em] text-ink">
+            {active.title}
+          </div>
+          <p className="mx-auto mt-2.5 max-w-[34ch] text-[0.8rem] leading-relaxed text-muted [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden">
+            {active.desc}
+          </p>
+        </div>
+      )}
 
       {/* One context-aware control. It points at whatever the camera is
           looking at — so navigation lives with the visual, not beside it. */}
@@ -110,14 +136,15 @@ export default function Experience({ content }: { content: HomeContent }) {
       </div>
 
       {/* Touch preview — because you can't hover a crystal on a phone: tap a
-          face to raise its section here, then tap Enter to fly there. Mobile
+          face to raise its section here, then tap Explore to PLAY the camera
+          flight down to it (same as a desktop click), not jump pages. Mobile
           only; the desktop hover→click flow is untouched. */}
       {heroPick !== null && sections[heroPick] && (
         <div className="fixed inset-x-0 bottom-0 z-40 p-4 pointer-events-auto md:hidden animate-[fadeIn_300ms_ease-out_both]">
-          <div className="mx-auto max-w-sm rounded-xl border border-line bg-surface/95 p-5 backdrop-blur-md">
+          <div className="tile mx-auto max-w-sm p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="font-mono text-xs uppercase tracking-label text-accent">
-                {sections[heroPick].index} / {String(sections.length).padStart(2, '0')}
+                {sections[heroPick].title}
               </div>
               <button
                 onClick={() => setHeroPick(null)}
@@ -127,19 +154,16 @@ export default function Experience({ content }: { content: HomeContent }) {
                 ×
               </button>
             </div>
-            <h2 className="mt-2 font-mono text-xl text-ink">
-              {sections[heroPick].title}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">
+            <p className="mt-2.5 text-sm leading-relaxed text-muted">
               {sections[heroPick].desc}
             </p>
-            <Link
-              href={sections[heroPick].href}
+            <button
+              onClick={() => flyTo(heroPick)}
               className="mt-4 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-label text-accent"
             >
-              <span className="link-underline">Enter {sections[heroPick].title}</span>
-              <span>→</span>
-            </Link>
+              <span className="link-underline">Explore {sections[heroPick].title}</span>
+              <span>↓</span>
+            </button>
           </div>
         </div>
       )}

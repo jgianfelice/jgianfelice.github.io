@@ -3,20 +3,28 @@ import localFont from 'next/font/local';
 import './globals.css';
 
 // Two voices, both bundled locally (no webfont round-trip, and the hero's
-// WebGL text reuses the Space Grotesk TTFs via troika):
+// WebGL text reuses the same TTFs via troika):
 //   · Fraunces — an expressive high-contrast serif with optical sizing, used
-//     large for the editorial page titles. It carries the "made with care"
-//     signal a default UI font never could.
-//   · Space Grotesk — a characterful grotesque (proportional, not a mono) for
-//     labels, UI, body, and the hero. Technical, but not generic.
-const grotesk = localFont({
+//     large for the editorial page titles.
+//   · Computer Modern — Knuth's LaTeX face (CMU conversion). Serif Roman for
+//     body prose, Typewriter for labels/UI — the site reads like a working
+//     paper, which is exactly the brand.
+const cmuSerif = localFont({
   src: [
-    { path: '../public/fonts/SpaceGrotesk-Light.ttf', weight: '300', style: 'normal' },
-    { path: '../public/fonts/SpaceGrotesk-Regular.ttf', weight: '400', style: 'normal' },
-    { path: '../public/fonts/SpaceGrotesk-Medium.ttf', weight: '500', style: 'normal' },
-    { path: '../public/fonts/SpaceGrotesk-Bold.ttf', weight: '700', style: 'normal' },
+    { path: '../public/fonts/cmunrm.ttf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/cmunti.ttf', weight: '400', style: 'italic' },
+    { path: '../public/fonts/cmunbx.ttf', weight: '700', style: 'normal' },
   ],
-  variable: '--font-grotesk',
+  variable: '--font-cmu-serif',
+  display: 'swap',
+});
+
+const cmuTypewriter = localFont({
+  src: [
+    { path: '../public/fonts/cmuntt.ttf', weight: '400', style: 'normal' },
+    { path: '../public/fonts/cmuntb.ttf', weight: '700', style: 'normal' },
+  ],
+  variable: '--font-cmu-mono',
   display: 'swap',
 });
 
@@ -47,7 +55,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${grotesk.variable} ${fraunces.variable}`}>
+    <html
+      lang="en"
+      className={`${cmuSerif.variable} ${cmuTypewriter.variable} ${fraunces.variable}`}
+    >
       <body className="grain">{children}</body>
     </html>
   );
