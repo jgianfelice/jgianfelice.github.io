@@ -824,6 +824,52 @@ function HeroCrystal({
   );
 }
 
+// Airborne frost drifting through the whole flight path — the igloo move:
+// the air itself is alive, in front of and behind every crystal, so the
+// camera is always flying THROUGH something.
+function FrostDrift({ count = 520 }: { count?: number }) {
+  const ref = useRef<THREE.Points>(null);
+  const seeds = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 22;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 14;
+      arr[i * 3 + 2] = 6 - Math.random() * 82; // spans hero → last station
+    }
+    return arr;
+  }, [count]);
+
+  useFrame((s, dt) => {
+    const p = ref.current;
+    if (!p) return;
+    const pos = p.geometry.attributes.position as THREE.BufferAttribute;
+    const t = s.clock.elapsedTime;
+    for (let i = 0; i < count; i++) {
+      let y = pos.getY(i) - dt * (0.14 + (i % 7) * 0.015);
+      if (y < -7) y = 7;
+      pos.setY(i, y);
+      pos.setX(i, pos.getX(i) + Math.sin(t * 0.35 + i) * dt * 0.045);
+    }
+    pos.needsUpdate = true;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" args={[seeds, 3]} />
+      </bufferGeometry>
+      <pointsMaterial
+        color={GRAPH_SOFT}
+        size={0.05}
+        sizeAttenuation
+        transparent
+        opacity={0.42}
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
 function World({
   sections,
   scrollRef,
@@ -849,6 +895,9 @@ function World({
       <hemisphereLight args={['#ffffff', '#ced4da', 0.55]} />
       <pointLight position={[6, 7, 6]} intensity={26} color={'#ffffff'} distance={60} decay={1.4} />
       <pointLight position={[-8, -2, 3]} intensity={12} color={'#e7ecf1'} distance={50} decay={1.5} />
+
+      {/* The air itself moves. */}
+      <FrostDrift />
 
       {/* Hero crystal — the chart sealed in ice, and the site's directory:
           five of the crystal's real faces light up under the cursor. */}
@@ -964,10 +1013,13 @@ export default function MarketSurface({
   sections,
   onSceneChange,
   onHeroPick,
+  onReady,
 }: {
   sections: Section[];
   onSceneChange?: (i: number) => void;
   onHeroPick?: (i: number | null) => void;
+  // Fires once the WebGL context is live — the HTML loader fades on this.
+  onReady?: () => void;
 }) {
   const scrollRef = useRef(0);
   const pointer = useRef({ x: 0, y: 0 });
@@ -1088,6 +1140,7 @@ export default function MarketSurface({
           dpr={[1, 1.6]}
           style={{ touchAction: 'pan-y' }}
           onPointerMissed={() => pick(null)}
+          onCreated={() => requestAnimationFrame(() => onReady?.())}
         >
           <color attach="background" args={[BG]} />
           <fog attach="fog" args={[BG, 9, 30]} />

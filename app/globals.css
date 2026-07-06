@@ -83,6 +83,36 @@
     animation: floaty 7s ease-in-out infinite;
   }
 
+  /* igloo-style corner brackets — [ chip ] — for instrument HUD labels. */
+  .brackets {
+    position: relative;
+  }
+  .brackets::before,
+  .brackets::after {
+    content: '';
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border: solid currentColor;
+    opacity: 0.55;
+  }
+  .brackets::before {
+    top: 0;
+    left: 0;
+    border-width: 1.5px 0 0 1.5px;
+  }
+  .brackets::after {
+    bottom: 0;
+    right: 0;
+    border-width: 0 1.5px 1.5px 0;
+  }
+
+  /* The instrument dot-grid behind the specimen crystals. */
+  .dot-grid {
+    background-image: radial-gradient(rgba(60, 67, 75, 0.16) 1px, transparent 1.5px);
+    background-size: 26px 26px;
+  }
+
   /* Cards that lift and cast a deeper shadow on hover, as if rising off the
      page. Pair with .tile. */
   .tile-lift {

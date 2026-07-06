@@ -1,10 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Nav from './Nav';
 import MarketSurface, { SECTION_S } from './MarketSurface';
 import type { Block, HomeContent } from '@/lib/notion';
+
+// igloo-style boot loader: a glowing strip of =+- glyphs scrambling in the
+// empty field until the WebGL world reports ready, then a clean fade.
+function GlyphLoader({ done }: { done: boolean }) {
+  const [glyphs, setGlyphs] = useState('=--=+==---');
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    if (done) return;
+    const POOL = '=+-';
+    const id = window.setInterval(() => {
+      let s = '';
+      for (let i = 0; i < 10; i++) s += POOL[(Math.random() * POOL.length) | 0];
+      setGlyphs(s);
+    }, 90);
+    return () => window.clearInterval(id);
+  }, [done]);
+
+  useEffect(() => {
+    if (!done) return;
+    const t = window.setTimeout(() => setGone(true), 750);
+    return () => window.clearTimeout(t);
+  }, [done]);
+
+  if (gone) return null;
+  return (
+    <div
+      className={`fixed inset-0 z-[70] flex items-center justify-center bg-base transition-opacity duration-700 ${
+        done ? 'opacity-0' : 'opacity-100'
+      }`}
+      aria-hidden="true"
+    >
+      <span
+        className="font-mono text-xl tracking-[0.3em] text-ink/80"
+        style={{ textShadow: '0 0 14px rgba(255,255,255,0.9), 0 0 3px rgba(255,255,255,0.8)' }}
+      >
+        {glyphs}
+      </span>
+    </div>
+  );
+}
 
 // ── The Home Experience ────────────────────────────────────────────
 // There is no "page" here in the usual sense. The WebGL world IS the
@@ -25,6 +66,20 @@ export default function Experience({ content }: { content: HomeContent }) {
   // A hero face tapped on a touch device (which can't hover) — drives the
   // mobile "preview + enter" card below.
   const [heroPick, setHeroPick] = useState<number | null>(null);
+  // Boot: the loader holds until the world's first frame AND a short beat,
+  // so the glyphs always read as an intentional moment, never a flash. A
+  // failsafe clears it after 6s regardless — if WebGL ever refuses to start
+  // on some device, the site must never stay behind the curtain.
+  const [worldReady, setWorldReady] = useState(false);
+  const [minHold, setMinHold] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => setMinHold(true), 900);
+    const failsafe = window.setTimeout(() => setWorldReady(true), 6000);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(failsafe);
+    };
+  }, []);
 
   const sections = [
     {
@@ -84,11 +139,15 @@ export default function Experience({ content }: { content: HomeContent }) {
     <>
       <Nav />
 
+      {/* Boot sequence — glowing glyphs until the world is live. */}
+      <GlyphLoader done={worldReady && minHold} />
+
       {/* The world — fixed, full-bleed, carries every word you read. */}
       <MarketSurface
         sections={sections}
         onSceneChange={setScene}
         onHeroPick={setHeroPick}
+        onReady={() => setWorldReady(true)}
       />
 
       {/* Wordmark, pinned top-left and present from the very first frame —

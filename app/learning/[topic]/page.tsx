@@ -44,7 +44,7 @@ export default async function LearningTopicPage({
       slug="learning"
       eyebrow={
         <Link href="/learning/" className={link}>
-          ← {meta.title}
+          {'//////'} {meta.title}
         </Link>
       }
       title={topic.title}

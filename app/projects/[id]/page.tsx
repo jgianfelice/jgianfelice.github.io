@@ -43,7 +43,7 @@ export default async function ProjectPage({
       slug="projects"
       eyebrow={
         <Link href="/projects/" className={link}>
-          ← {meta.title}
+          {'//////'} {meta.title}
         </Link>
       }
       title={p.title}

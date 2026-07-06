@@ -1,15 +1,18 @@
 import Link from 'next/link';
 import Nav from './Nav';
-import PageObject from './PageObject';
-import { SECTIONS, type SectionSlug } from '@/lib/content';
+import Atmosphere from './Atmosphere';
+import Parallax from './Parallax';
+import Scramble from './Scramble';
+import { SECTIONS, sectionBySlug, type SectionSlug } from '@/lib/content';
 
 type Align = 'left' | 'right';
 
-// Shared frame for every sub-page: fixed nav, an editorial masthead pairing a
-// big Fraunces title with a floating 3D crystal (the section's emblem, echoing
-// the hero) so the page keeps the landing page's world, the content column,
-// and a footer slot. On mobile everything left-aligns and the crystal drops
-// below the title, so the composition never fights itself on a narrow screen.
+// Shared frame for every sub-page. The page is not a document with a 3D
+// accent — it lives INSIDE the same frozen world as the hero: a fixed
+// atmosphere (fog, dust, dot-grid, the section's specimen crystal with its
+// instrument HUD) sits behind everything, the camera leans with the cursor,
+// and the content scrolls above on its own parallax plane. The crystal takes
+// the side opposite the title so the two never fight.
 export default function PageShell({
   eyebrow,
   title,
@@ -29,40 +32,43 @@ export default function PageShell({
 }) {
   const text =
     align === 'right' ? 'items-start text-left md:items-end md:text-right' : 'items-start text-left';
+  const meta = slug ? sectionBySlug(slug) : undefined;
 
   return (
     <>
       <Nav />
+      {slug && (
+        <Atmosphere
+          slug={slug}
+          side={align === 'right' ? 'left' : 'right'}
+          index={meta?.index}
+          title={meta?.title}
+        />
+      )}
       <main className="relative z-10 min-h-screen">
         <div className="container-editorial pt-32 pb-24 md:pt-40">
-          <header
-            className={`flex flex-col items-start gap-10 animate-[fadeIn_700ms_ease-out_both] md:flex-row md:items-center md:gap-14 ${
-              align === 'right' ? 'md:flex-row-reverse' : ''
-            }`}
-          >
-            <div className={`flex min-w-0 flex-1 flex-col ${text}`}>
-              {eyebrow && (
-                <div className="mb-6 font-mono text-[0.7rem] uppercase tracking-[0.28em] text-faint">
-                  {eyebrow}
-                </div>
-              )}
+          <Parallax amount={6}>
+            <header
+              className={`flex flex-col gap-8 animate-[fadeIn_700ms_ease-out_both] ${text}`}
+            >
+              <div className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-faint">
+                {eyebrow ?? (
+                  <>
+                    <span className="text-faint/70">{'//////'}</span>{' '}
+                    {meta && <Scramble text={`SECTION_${meta.index}`} duration={800} />}
+                  </>
+                )}
+              </div>
               <h1 className="max-w-[16ch] font-serif text-[2.6rem] font-light leading-[0.98] tracking-[-0.015em] text-ink md:text-6xl lg:text-[5rem]">
                 {title}
               </h1>
               {tagline && (
-                <p className="mt-6 max-w-[36ch] text-base leading-relaxed text-muted md:text-lg">
+                <p className="max-w-[36ch] text-base leading-relaxed text-muted md:text-lg">
                   {tagline}
                 </p>
               )}
-            </div>
-
-            {slug && (
-              <PageObject
-                slug={slug}
-                className="h-40 w-40 shrink-0 md:h-56 md:w-56 lg:h-64 lg:w-64"
-              />
-            )}
-          </header>
+            </header>
+          </Parallax>
 
           <div className="mt-14 h-px w-full bg-line md:mt-20" />
 

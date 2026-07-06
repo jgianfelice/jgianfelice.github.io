@@ -38,7 +38,7 @@ export default async function LogEntryPage({
       slug="logs"
       eyebrow={
         <Link href={`/logs/${category.slug}/`} className={link}>
-          ← {category.title}
+          {'//////'} {category.title}
         </Link>
       }
       title={entry.title}

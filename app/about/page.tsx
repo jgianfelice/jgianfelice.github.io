@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 function Label({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-6 flex items-center gap-3">
-      <span className="h-px w-6 bg-accent/40" />
+      <span className="font-mono text-[0.72rem] text-faint/80">{'//////'}</span>
       <h2 className="font-mono text-[0.72rem] font-medium uppercase tracking-[0.24em] text-accent">
         {children}
       </h2>

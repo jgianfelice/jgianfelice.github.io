@@ -6,7 +6,7 @@ export default function ProjectResources({ extras }: { extras: ProjectExtras }) 
   return (
     <section className="mt-16 border-t border-line pt-10">
       <div className="mb-6 flex items-center gap-3">
-        <span className="h-px w-6 bg-accent/40" />
+        <span className="font-mono text-[0.72rem] text-faint/80">{'//////'}</span>
         <h2 className="font-mono text-[0.72rem] font-medium uppercase tracking-[0.24em] text-accent">
           Resources
         </h2>

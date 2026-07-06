@@ -47,7 +47,7 @@ export default async function LogCategoryPage({
       slug="logs"
       eyebrow={
         <Link href="/logs/" className={link}>
-          ← {meta.title}
+          {'//////'} {meta.title}
         </Link>
       }
       title={category.title}
