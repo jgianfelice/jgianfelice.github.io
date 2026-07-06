@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Float, MeshTransmissionMaterial, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import Scramble from './Scramble';
+import { Terrain, GroundShadow } from './Scenery';
 import type { SectionSlug } from '@/lib/content';
 
 // ── The living page world ────────────────────────────────────────────
@@ -170,16 +171,18 @@ function Specimen({
   narrow: boolean;
 }) {
   const grp = useRef<THREE.Group>(null);
+  const shadow = useRef<THREE.Group>(null);
   const shell = useRef<THREE.Mesh>(null);
   const { viewport, camera } = useThree();
 
   useFrame((s, dt) => {
     // Camera leans with the cursor — the whole world tilts, igloo-style.
+    // It rides slightly high, tipped down, so the snowfield reads beneath.
     const px = pointer.current.x;
     const py = pointer.current.y;
     camera.position.x += (px * 0.55 - camera.position.x) * Math.min(1, dt * 4);
-    camera.position.y += (0.15 + py * -0.35 - camera.position.y) * Math.min(1, dt * 4);
-    camera.lookAt(0, 0, 0);
+    camera.position.y += (0.45 + py * -0.35 - camera.position.y) * Math.min(1, dt * 4);
+    camera.lookAt(0, -0.1, 0);
 
     if (grp.current) {
       // The crystal drifts up as you scroll and keeps turning — the page and
@@ -195,6 +198,13 @@ function Specimen({
       const scale = (narrow ? 0.45 : 1) * (1 - 0.55 * recede);
       grp.current.scale.setScalar(scale);
       grp.current.visible = recede < 0.999;
+      // The grounding shadow stays on the snow, tracking the specimen's x and
+      // dissolving as it recedes.
+      if (shadow.current) {
+        shadow.current.position.x = grp.current.position.x;
+        shadow.current.scale.setScalar(Math.max(0.001, (narrow ? 0.55 : 1) * (1 - 0.9 * recede)));
+        shadow.current.visible = grp.current.visible;
+      }
     }
     if (shell.current) {
       shell.current.rotation.y += 0.0022;
@@ -203,7 +213,11 @@ function Specimen({
   });
 
   return (
-    <group ref={grp}>
+    <>
+      <group ref={shadow}>
+        <GroundShadow position={[0, -2.02, 0]} scale={2.6} opacity={0.15} />
+      </group>
+      <group ref={grp}>
       <Float speed={1.15} rotationIntensity={0.28} floatIntensity={0.65}>
         <Emblem slug={slug} />
         <mesh ref={shell}>
@@ -232,7 +246,8 @@ function Specimen({
           <meshBasicMaterial color={GRAPH_STRONG} wireframe transparent opacity={0.1} />
         </mesh>
       </Float>
-    </group>
+      </group>
+    </>
   );
 }
 
@@ -318,10 +333,13 @@ export default function Atmosphere({
           {/* Opaque field: the transmission buffer needs a real background to
               refract, or the glass reads as a black slab. */}
           <color attach="background" args={[BASE]} />
-          <fog attach="fog" args={[BASE, 8, 16]} />
+          <fog attach="fog" args={[BASE, 7, 19]} />
           <ambientLight intensity={0.9} color="#ffffff" />
           <pointLight position={[5, 6, 5]} intensity={18} color="#ffffff" distance={50} decay={1.4} />
           <pointLight position={[-6, -2, 3]} intensity={8} color="#e7ecf1" distance={40} decay={1.5} />
+          {/* The world behind the page — dunes rising at the frame's edges,
+              fog swallowing the horizon. Same ground the hero flies over. */}
+          <Terrain y={-2.1} width={70} depth={80} zCenter={-14} valleyHalfWidth={3.2} />
           <Dust />
           <Specimen slug={slug} dir={dir} pointer={pointer} scrollRef={scrollRef} narrow={narrow} />
           <Environment resolution={256} frames={1}>

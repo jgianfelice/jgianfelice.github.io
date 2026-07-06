@@ -8,9 +8,9 @@ import {
   Environment,
   Lightformer,
   MeshTransmissionMaterial,
-  MeshReflectorMaterial,
   Billboard,
 } from '@react-three/drei';
+import { Terrain, GroundShadow } from './Scenery';
 import {
   EffectComposer,
   ChromaticAberration,
@@ -903,7 +903,6 @@ function World({
 }) {
   // The hero crystal grows on load; section crystals grow when reached.
   const heroIntro = useRef(0);
-  const narrow = useNarrow();
   useFrame((_, delta) => {
     heroIntro.current = Math.min(1, heroIntro.current + delta / 2.4);
   });
@@ -918,27 +917,16 @@ function World({
       <pointLight position={[-8, -2, 3]} intensity={12} color={'#e7ecf1'} distance={50} decay={1.5} />
       <CursorLight pointer={pointer} />
 
-      {/* The frozen lake — a blurred-reflection floor running the whole
-          flight, so every crystal stands over its own ghost. The fog eats it
-          at the horizon. Desktop only; phones skip the double render. */}
-      {!narrow && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.6, -30]}>
-          <planeGeometry args={[90, 120]} />
-          <MeshReflectorMaterial
-            blur={[420, 120]}
-            resolution={512}
-            mixBlur={0.95}
-            mixStrength={0.55}
-            roughness={0.8}
-            depthScale={1.1}
-            minDepthThreshold={0.4}
-            maxDepthThreshold={1.4}
-            color="#dde1e6"
-            metalness={0}
-            mirror={0.35}
-          />
-        </mesh>
-      )}
+      {/* THE WORLD — a rolling snowfield runs the whole flight, dunes rising
+          at the frame's edges, the valley open down the camera's path, fog
+          swallowing the horizon (the fog IS the sky). Every crystal is tied
+          to the ground by its own soft shadow. Background, midground,
+          foreground — layered like igloo's. */}
+      <Terrain y={-2.6} zCenter={-30} />
+      <GroundShadow position={[0, -2.52, 0]} scale={3.2} opacity={0.18} />
+      {STATIONS.slice(1).map((st, j) => (
+        <GroundShadow key={j} position={[st[0], -2.52, st[2]]} scale={2.4} opacity={0.15} />
+      ))}
 
       {/* The air itself moves. */}
       <FrostDrift />
@@ -1085,17 +1073,18 @@ export default function MarketSurface({
 
   const keyframes = useMemo(() => {
     const kf: { s: number; pos: THREE.Vector3; look: THREE.Vector3 }[] = [];
-    // Hero — straight on the first crystal.
+    // Hero — straight on the first crystal, riding slightly high so the
+    // snowfield reads beneath it.
     kf.push({
       s: 0,
-      pos: new THREE.Vector3(0, 0.3, 7),
-      look: new THREE.Vector3(0, 0, 0),
+      pos: new THREE.Vector3(0, 0.75, 7),
+      look: new THREE.Vector3(0, -0.05, 0),
     });
     STATIONS.slice(1).forEach((st, j) => {
       const side = j % 2 === 0 ? 1 : -1; // approach from the open side
       kf.push({
         s: SECTION_S[j],
-        pos: new THREE.Vector3(st[0] * 0.35 + side * 1.4, st[1] * 0.6 + 0.4, st[2] + 6.2),
+        pos: new THREE.Vector3(st[0] * 0.35 + side * 1.4, st[1] * 0.6 + 0.65, st[2] + 6.2),
         look: new THREE.Vector3(st[0], st[1], st[2]),
       });
     });
@@ -1187,7 +1176,7 @@ export default function MarketSurface({
           onCreated={() => requestAnimationFrame(() => onReady?.())}
         >
           <color attach="background" args={[BG]} />
-          <fog attach="fog" args={[BG, 9, 30]} />
+          <fog attach="fog" args={[BG, 10, 36]} />
           <CameraRig keyframes={keyframes} scrollRef={scrollRef} pointer={pointer} />
           <World
             sections={sections}
