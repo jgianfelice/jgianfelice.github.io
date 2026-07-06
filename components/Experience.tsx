@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Nav from './Nav';
+import Parallax from './Parallax';
 import MarketSurface, { SECTION_S } from './MarketSurface';
 import type { Block, HomeContent } from '@/lib/notion';
 
@@ -153,14 +154,16 @@ export default function Experience({ content }: { content: HomeContent }) {
       {/* Wordmark, pinned top-left and present from the very first frame —
           CMU Typewriter, uppercase, the way igloo sets its marque. */}
       <div className="fixed top-6 left-6 z-30 pointer-events-auto select-none animate-[fadeIn_900ms_ease-out_both]">
-        <Link href="/" className="block leading-[1.2]">
-          <span className="block font-mono text-[11px] uppercase tracking-label text-ink/90">
-            Justin
-          </span>
-          <span className="block font-mono text-[11px] uppercase tracking-label text-ink/90">
-            Gianfelice
-          </span>
-        </Link>
+        <Parallax amount={5}>
+          <Link href="/" className="block leading-[1.2]">
+            <span className="block font-mono text-[11px] uppercase tracking-label text-ink/90">
+              Justin
+            </span>
+            <span className="block font-mono text-[11px] uppercase tracking-label text-ink/90">
+              Gianfelice
+            </span>
+          </Link>
+        </Parallax>
       </div>
 
       {/* Phones can't fit the in-world side titles, so the section name

@@ -22,6 +22,8 @@ const GRAPH_STRONG = '#1E2227';
 const GRAPH_SOFT = '#9AA1A8';
 const BASE = '#E8EAED';
 
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
 function Mat({ c }: { c: string }) {
   return <meshStandardMaterial color={c} roughness={0.5} metalness={0.06} />;
 }
@@ -185,10 +187,14 @@ function Specimen({
       const sc = scrollRef.current;
       const x = narrow ? dir * 0.85 : dir * Math.min(3.1, viewport.width / 2 - 2.2);
       grp.current.position.x += (x - grp.current.position.x) * Math.min(1, dt * 3);
-      grp.current.position.y = (narrow ? 2.0 : 0.15) + sc * 0.0012;
+      // Past the masthead the specimen recedes — it rises out of frame and
+      // shrinks toward the corner, so it never sits on top of the content.
+      const recede = clamp01((sc - 120) / 420);
+      grp.current.position.y = (narrow ? 2.0 : 0.15) + sc * 0.0045;
       grp.current.rotation.y = sc * 0.0006;
-      const scale = narrow ? 0.45 : 1;
+      const scale = (narrow ? 0.45 : 1) * (1 - 0.55 * recede);
       grp.current.scale.setScalar(scale);
+      grp.current.visible = recede < 0.999;
     }
     if (shell.current) {
       shell.current.rotation.y += 0.0022;
@@ -286,6 +292,12 @@ export default function Atmosphere({
       if (scrollOut.current) {
         const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
         scrollOut.current.textContent = `SCROLL ${String(Math.round((window.scrollY / max) * 100)).padStart(3, '0')}%`;
+      }
+      // The HUD belongs to the masthead specimen — it dissolves with it so it
+      // never sits over the content that scrolls up beneath.
+      if (hudRef.current) {
+        const fade = Math.max(0, Math.min(1, 1 - (window.scrollY - 120) / 380));
+        hudRef.current.style.opacity = String(fade);
       }
     };
     onScroll();

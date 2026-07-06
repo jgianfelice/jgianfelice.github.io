@@ -8,6 +8,7 @@ import {
   Environment,
   Lightformer,
   MeshTransmissionMaterial,
+  MeshReflectorMaterial,
   Billboard,
 } from '@react-three/drei';
 import {
@@ -683,16 +684,18 @@ function HeroCrystal({
           <mesh raycast={() => null}>
             <dodecahedronGeometry args={[HERO_SIZE, 0]} />
             <MeshTransmissionMaterial
-              transmissionSampler
               samples={narrow ? 4 : 6}
+              resolution={narrow ? 384 : 768}
+              backside={!narrow}
+              backsideThickness={0.3}
               thickness={0.6}
               ior={1.31}
-              chromaticAberration={narrow ? 0.04 : 0.14}
+              chromaticAberration={narrow ? 0.04 : 0.1}
               anisotropicBlur={narrow ? 0.15 : 0.25}
               roughness={0.16}
-              distortion={narrow ? 0.1 : 0.3}
+              distortion={narrow ? 0.1 : 0.25}
               distortionScale={0.35}
-              temporalDistortion={narrow ? 0.015 : 0.08}
+              temporalDistortion={narrow ? 0.015 : 0.06}
               transmission={1}
               color={ICE}
               attenuationColor={ICE}
@@ -870,19 +873,37 @@ function FrostDrift({ count = 520 }: { count?: number }) {
   );
 }
 
+// A soft white light that shadows the cursor through the frozen space — the
+// ice glints and shifts as you move, igloo's "the world notices you" trick.
+function CursorLight({ pointer }: { pointer: React.MutableRefObject<{ x: number; y: number }> }) {
+  const l = useRef<THREE.PointLight>(null);
+  const target = useMemo(() => new THREE.Vector3(), []);
+  useFrame((_, dt) => {
+    if (!l.current) return;
+    target.set(pointer.current.x * 4.5, 1.2 + pointer.current.y * 2.4, 2.6);
+    l.current.position.lerp(target, Math.min(1, dt * 5));
+  });
+  return (
+    <pointLight ref={l} position={[0, 1.2, 2.6]} intensity={13} color="#ffffff" distance={16} decay={1.7} />
+  );
+}
+
 function World({
   sections,
   scrollRef,
+  pointer,
   picked,
   onPick,
 }: {
   sections: Section[];
   scrollRef: React.MutableRefObject<number>;
+  pointer: React.MutableRefObject<{ x: number; y: number }>;
   picked: number | null;
   onPick: (i: number | null) => void;
 }) {
   // The hero crystal grows on load; section crystals grow when reached.
   const heroIntro = useRef(0);
+  const narrow = useNarrow();
   useFrame((_, delta) => {
     heroIntro.current = Math.min(1, heroIntro.current + delta / 2.4);
   });
@@ -895,6 +916,29 @@ function World({
       <hemisphereLight args={['#ffffff', '#ced4da', 0.55]} />
       <pointLight position={[6, 7, 6]} intensity={26} color={'#ffffff'} distance={60} decay={1.4} />
       <pointLight position={[-8, -2, 3]} intensity={12} color={'#e7ecf1'} distance={50} decay={1.5} />
+      <CursorLight pointer={pointer} />
+
+      {/* The frozen lake — a blurred-reflection floor running the whole
+          flight, so every crystal stands over its own ghost. The fog eats it
+          at the horizon. Desktop only; phones skip the double render. */}
+      {!narrow && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.6, -30]}>
+          <planeGeometry args={[90, 120]} />
+          <MeshReflectorMaterial
+            blur={[420, 120]}
+            resolution={512}
+            mixBlur={0.95}
+            mixStrength={0.55}
+            roughness={0.8}
+            depthScale={1.1}
+            minDepthThreshold={0.4}
+            maxDepthThreshold={1.4}
+            color="#dde1e6"
+            metalness={0}
+            mirror={0.35}
+          />
+        </mesh>
+      )}
 
       {/* The air itself moves. */}
       <FrostDrift />
@@ -1145,7 +1189,13 @@ export default function MarketSurface({
           <color attach="background" args={[BG]} />
           <fog attach="fog" args={[BG, 9, 30]} />
           <CameraRig keyframes={keyframes} scrollRef={scrollRef} pointer={pointer} />
-          <World sections={sections} scrollRef={scrollRef} picked={picked} onPick={pick} />
+          <World
+            sections={sections}
+            scrollRef={scrollRef}
+            pointer={pointer}
+            picked={picked}
+            onPick={pick}
+          />
 
           {/* No Bloom/Vignette on a light field — they'd wash the pale
               background to white and dirty the corners. Contrast does the work;
