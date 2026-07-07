@@ -684,18 +684,16 @@ function HeroCrystal({
           <mesh raycast={() => null}>
             <dodecahedronGeometry args={[HERO_SIZE, 0]} />
             <MeshTransmissionMaterial
+              transmissionSampler
               samples={narrow ? 4 : 6}
-              resolution={narrow ? 384 : 768}
-              backside={!narrow}
-              backsideThickness={0.3}
               thickness={0.6}
               ior={1.31}
-              chromaticAberration={narrow ? 0.04 : 0.1}
+              chromaticAberration={narrow ? 0.04 : 0.12}
               anisotropicBlur={narrow ? 0.15 : 0.25}
               roughness={0.16}
-              distortion={narrow ? 0.1 : 0.25}
+              distortion={narrow ? 0.1 : 0.28}
               distortionScale={0.35}
-              temporalDistortion={narrow ? 0.015 : 0.06}
+              temporalDistortion={narrow ? 0.015 : 0.07}
               transmission={1}
               color={ICE}
               attenuationColor={ICE}
@@ -911,8 +909,11 @@ function World({
     <>
       {/* Bright, even, cool-neutral light so the graphite objects read as
           solid darks and the glass picks up clean specular highlights. */}
-      <ambientLight intensity={0.9} color={'#ffffff'} />
-      <hemisphereLight args={['#ffffff', '#ced4da', 0.55]} />
+      <ambientLight intensity={0.75} color={'#ffffff'} />
+      <hemisphereLight args={['#ffffff', '#c3c9cf', 0.5]} />
+      {/* Low sun from the upper-left: it rakes the mountain slopes so every
+          ridge shades — the terrain gets FORM, not just silhouette. */}
+      <directionalLight position={[-14, 16, 8]} intensity={1.35} color={'#ffffff'} />
       <pointLight position={[6, 7, 6]} intensity={26} color={'#ffffff'} distance={60} decay={1.4} />
       <pointLight position={[-8, -2, 3]} intensity={12} color={'#e7ecf1'} distance={50} decay={1.5} />
       <CursorLight pointer={pointer} />
@@ -1176,7 +1177,7 @@ export default function MarketSurface({
           onCreated={() => requestAnimationFrame(() => onReady?.())}
         >
           <color attach="background" args={[BG]} />
-          <fog attach="fog" args={[BG, 10, 36]} />
+          <fog attach="fog" args={[BG, 11, 46]} />
           <CameraRig keyframes={keyframes} scrollRef={scrollRef} pointer={pointer} />
           <World
             sections={sections}

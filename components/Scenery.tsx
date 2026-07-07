@@ -5,53 +5,63 @@ import * as THREE from 'three';
 import { ImprovedNoise } from 'three/examples/jsm/math/ImprovedNoise.js';
 
 // ── The world itself ─────────────────────────────────────────────────
-// igloo.inc's realism is layers: a terrain that rises at the edges of the
-// frame, fog that swallows the horizon, and objects grounded by their own
-// shadows. This is that world in our light-concrete palette — a rolling
-// snowfield with a clear valley down the camera's flight path, fading to
-// white where the fog takes over (the fog IS the sky).
+// igloo.inc's realism is one continuous landscape: a snowfield underfoot
+// that climbs into REAL mountains at the edges of the frame, their ridges
+// rising into the sky, fog only softening the far ones. The flight corridor
+// stays open down the middle; everything else is range.
 
-const SNOW = '#e3e7eb';
+const SNOW = '#d5dade';
 
-// Fractal noise heightfield. The valley: amplitude grows with |x|, so dunes
-// climb at the frame's edges and the path down the middle stays open.
+// Rolling floor + ridged mountain chains. Ridge noise (1-|n|)^p gives sharp
+// crests; the mask keeps the corridor clear and lets peaks grow at the sides.
 export function Terrain({
   y = -2.6,
-  width = 170,
-  depth = 170,
+  width = 200,
+  depth = 200,
   zCenter = -30,
-  valleyHalfWidth = 7,
+  corridor = 7,
+  peak = 11,
 }: {
   y?: number;
   width?: number;
   depth?: number;
   zCenter?: number;
-  valleyHalfWidth?: number;
+  corridor?: number;
+  peak?: number;
 }) {
   const geo = useMemo(() => {
-    const g = new THREE.PlaneGeometry(width, depth, 180, 180);
+    const g = new THREE.PlaneGeometry(width, depth, 200, 200);
     const noise = new ImprovedNoise();
     const pos = g.attributes.position as THREE.BufferAttribute;
+    const fbm = (x: number, z: number) =>
+      noise.noise(x * 0.02, z * 0.02, 0) +
+      noise.noise(x * 0.05, z * 0.05, 7.3) * 0.5 +
+      noise.noise(x * 0.11, z * 0.11, 13.1) * 0.25;
+
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i);
-      const zLocal = pos.getY(i); // plane's own Y becomes world -Z after rotation
-      // FBM: three octaves of Perlin, gentle.
-      const n =
-        noise.noise(x * 0.02, zLocal * 0.02, 0) * 1.0 +
-        noise.noise(x * 0.055, zLocal * 0.055, 7.3) * 0.45 +
-        noise.noise(x * 0.14, zLocal * 0.14, 13.1) * 0.18;
-      // Dunes swell away from the valley centre-line.
-      const side = Math.max(0, Math.abs(x) - valleyHalfWidth);
-      const swell = 0.35 + Math.min(1, side / 26) * 4.2;
-      pos.setZ(i, Math.max(0, n + 0.9) * swell);
+      const z = pos.getY(i); // becomes world -Z after rotation
+
+      // The valley floor rolls gently everywhere — visible drifts underfoot.
+      const floor = Math.max(0, fbm(x, z) + 0.7) * 1.1;
+
+      // Ridged mountains: sharp crests that climb fast outside the corridor.
+      const r1 = Math.pow(1 - Math.abs(noise.noise(x * 0.016 + 5, z * 0.016, 3.7)), 2.4);
+      const r2 = Math.pow(1 - Math.abs(noise.noise(x * 0.034 + 11, z * 0.034, 9.2)), 2.0) * 0.45;
+      const side = Math.abs(x);
+      // 0 inside the corridor → 1 by corridor+16: the range flanks the path.
+      const mask = Math.min(1, Math.max(0, (side - corridor) / 16));
+      const mountains = (r1 + r2) * peak * mask * (0.75 + 0.25 * Math.abs(noise.noise(x * 0.008, z * 0.008, 21)));
+
+      pos.setZ(i, floor + mountains);
     }
     g.computeVertexNormals();
     return g;
-  }, [width, depth, valleyHalfWidth]);
+  }, [width, depth, corridor, peak]);
 
   return (
-    <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]} position={[0, y, zCenter]} receiveShadow>
-      <meshStandardMaterial color={SNOW} roughness={0.96} metalness={0} />
+    <mesh geometry={geo} rotation={[-Math.PI / 2, 0, 0]} position={[0, y, zCenter]}>
+      <meshStandardMaterial color={SNOW} roughness={0.95} metalness={0} />
     </mesh>
   );
 }

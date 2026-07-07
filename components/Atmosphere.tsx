@@ -333,13 +333,15 @@ export default function Atmosphere({
           {/* Opaque field: the transmission buffer needs a real background to
               refract, or the glass reads as a black slab. */}
           <color attach="background" args={[BASE]} />
-          <fog attach="fog" args={[BASE, 7, 19]} />
-          <ambientLight intensity={0.9} color="#ffffff" />
+          <fog attach="fog" args={[BASE, 9, 34]} />
+          <ambientLight intensity={0.75} color="#ffffff" />
+          <hemisphereLight args={['#ffffff', '#c3c9cf', 0.5]} />
+          <directionalLight position={[-14, 16, 8]} intensity={1.35} color="#ffffff" />
           <pointLight position={[5, 6, 5]} intensity={18} color="#ffffff" distance={50} decay={1.4} />
           <pointLight position={[-6, -2, 3]} intensity={8} color="#e7ecf1" distance={40} decay={1.5} />
-          {/* The world behind the page — dunes rising at the frame's edges,
-              fog swallowing the horizon. Same ground the hero flies over. */}
-          <Terrain y={-2.1} width={70} depth={80} zCenter={-14} valleyHalfWidth={3.2} />
+          {/* The world behind the page — mountains flanking the frame, fog
+              softening the far ridges. Same range the hero flies through. */}
+          <Terrain y={-2.1} width={120} depth={110} zCenter={-22} corridor={4} peak={8} />
           <Dust />
           <Specimen slug={slug} dir={dir} pointer={pointer} scrollRef={scrollRef} narrow={narrow} />
           <Environment resolution={256} frames={1}>
