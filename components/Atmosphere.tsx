@@ -5,7 +5,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Float, MeshTransmissionMaterial, Environment, Lightformer } from '@react-three/drei';
 import * as THREE from 'three';
 import Scramble from './Scramble';
-import { Terrain, GroundShadow } from './Scenery';
+import { Terrain, GroundShadow, useSoftDot } from './Scenery';
 import type { SectionSlug } from '@/lib/content';
 
 // ── The living page world ────────────────────────────────────────────
@@ -113,8 +113,9 @@ function Emblem({ slug }: { slug: SectionSlug }) {
 }
 
 // ── Airborne dust — the air itself moves, like igloo's snowfield ─────
-function Dust({ count = 360 }: { count?: number }) {
+function Dust({ count = 260 }: { count?: number }) {
   const ref = useRef<THREE.Points>(null);
+  const dot = useSoftDot();
   const seeds = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -145,6 +146,7 @@ function Dust({ count = 360 }: { count?: number }) {
         <bufferAttribute attach="attributes-position" args={[seeds, 3]} />
       </bufferGeometry>
       <pointsMaterial
+        map={dot}
         color={GRAPH_SOFT}
         size={0.045}
         sizeAttenuation
@@ -336,7 +338,7 @@ export default function Atmosphere({
           <fog attach="fog" args={[BASE, 9, 34]} />
           <ambientLight intensity={0.75} color="#ffffff" />
           <hemisphereLight args={['#ffffff', '#c3c9cf', 0.5]} />
-          <directionalLight position={[-14, 16, 8]} intensity={1.35} color="#ffffff" />
+          <directionalLight position={[-14, 16, 8]} intensity={0.95} color="#ffffff" />
           <pointLight position={[5, 6, 5]} intensity={18} color="#ffffff" distance={50} decay={1.4} />
           <pointLight position={[-6, -2, 3]} intensity={8} color="#e7ecf1" distance={40} decay={1.5} />
           {/* The world behind the page — mountains flanking the frame, fog

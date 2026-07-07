@@ -10,7 +10,7 @@ import {
   MeshTransmissionMaterial,
   Billboard,
 } from '@react-three/drei';
-import { Terrain, GroundShadow } from './Scenery';
+import { Terrain, GroundShadow, useSoftDot } from './Scenery';
 import {
   EffectComposer,
   ChromaticAberration,
@@ -828,8 +828,9 @@ function HeroCrystal({
 // Airborne frost drifting through the whole flight path — the igloo move:
 // the air itself is alive, in front of and behind every crystal, so the
 // camera is always flying THROUGH something.
-function FrostDrift({ count = 520 }: { count?: number }) {
+function FrostDrift({ count = 320 }: { count?: number }) {
   const ref = useRef<THREE.Points>(null);
+  const dot = useSoftDot();
   const seeds = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
@@ -860,11 +861,12 @@ function FrostDrift({ count = 520 }: { count?: number }) {
         <bufferAttribute attach="attributes-position" args={[seeds, 3]} />
       </bufferGeometry>
       <pointsMaterial
+        map={dot}
         color={GRAPH_SOFT}
-        size={0.05}
+        size={0.045}
         sizeAttenuation
         transparent
-        opacity={0.42}
+        opacity={0.4}
         depthWrite={false}
       />
     </points>
@@ -913,7 +915,7 @@ function World({
       <hemisphereLight args={['#ffffff', '#c3c9cf', 0.5]} />
       {/* Low sun from the upper-left: it rakes the mountain slopes so every
           ridge shades — the terrain gets FORM, not just silhouette. */}
-      <directionalLight position={[-14, 16, 8]} intensity={1.35} color={'#ffffff'} />
+      <directionalLight position={[-14, 16, 8]} intensity={0.95} color={'#ffffff'} />
       <pointLight position={[6, 7, 6]} intensity={26} color={'#ffffff'} distance={60} decay={1.4} />
       <pointLight position={[-8, -2, 3]} intensity={12} color={'#e7ecf1'} distance={50} decay={1.5} />
       <CursorLight pointer={pointer} />
