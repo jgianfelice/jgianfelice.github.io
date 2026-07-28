@@ -5,6 +5,7 @@ import Prose from '@/components/Prose';
 import PageShell, { BackHome } from '@/components/PageShell';
 import ProjectResources from '@/components/ProjectResources';
 import ProjectStanding from '@/components/ProjectStanding';
+import KynexisShowcase from '@/components/KynexisShowcase';
 import { loadProject, projectIds, sectionBySlug } from '@/lib/content';
 import { projectExtras } from '@/lib/projectExtras';
 
@@ -37,6 +38,7 @@ export default async function ProjectPage({
   const p = await loadProject(params.id);
   if (!p) notFound();
   const extras = projectExtras(p.title);
+  const isKynexis = /kynexis/i.test(p.title);
 
   return (
     <PageShell
@@ -56,9 +58,15 @@ export default async function ProjectPage({
         </div>
       }
     >
-      {extras?.standing && <ProjectStanding standing={extras.standing} />}
-      <Prose blocks={p.blocks} />
-      {extras && <ProjectResources extras={extras} />}
+      {isKynexis ? (
+        <KynexisShowcase />
+      ) : (
+        <>
+          {extras?.standing && <ProjectStanding standing={extras.standing} />}
+          <Prose blocks={p.blocks} />
+          {extras && <ProjectResources extras={extras} />}
+        </>
+      )}
     </PageShell>
   );
 }
