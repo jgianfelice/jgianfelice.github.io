@@ -114,6 +114,32 @@ export const CERT_INTRO =
 
 export const CERT_GROUPS: CertGroup[] = [
   {
+    issuer: 'Citi',
+    certs: [
+      {
+        slug: 'citi-mqa',
+        name: 'Markets Quantitative Analysis (MQA) Job Simulation',
+        date: 'Issued Aug 2026',
+        image: '/certs/citi.png',
+        blurb:
+          'Financial math fundamentals, pricing commodities, hedging and structuring securities, and managing risk across market trading desks.',
+      },
+    ],
+  },
+  {
+    issuer: 'Bank of America',
+    certs: [
+      {
+        slug: 'bofa-global-markets-st',
+        name: 'Global Markets Sales and Trading Analyst Job Simulation',
+        date: 'Issued Aug 2026',
+        image: '/certs/bofa.png',
+        blurb:
+          'Generating market insight, navigating live market dynamics, client-centric product recommendations, and improving workflow through automation.',
+      },
+    ],
+  },
+  {
     issuer: 'Duke University',
     certs: [
       {

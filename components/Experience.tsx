@@ -177,9 +177,6 @@ export default function Experience({ content }: { content: HomeContent }) {
           <div className="font-serif text-4xl font-light tracking-[-0.01em] text-ink">
             {active.title}
           </div>
-          <p className="mx-auto mt-2.5 max-w-[34ch] text-[0.8rem] leading-relaxed text-muted [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden">
-            {active.desc}
-          </p>
         </div>
       )}
 
