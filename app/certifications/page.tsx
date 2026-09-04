@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import PageShell, { SectionNav } from '@/components/PageShell';
 import SectionMotif from '@/components/SectionMotif';
 import CertCard from '@/components/CertCard';
-import { CERTS, CERT_INTRO, sectionBySlug } from '@/lib/content';
+import { CERTS, sectionBySlug } from '@/lib/content';
 
 export const revalidate = 300;
 
@@ -19,18 +19,10 @@ export default function CertificationsPage() {
       slug="certifications"
       align="right"
       title={meta.title}
-      tagline={meta.tagline}
       footer={<SectionNav slug="certifications" />}
     >
       <SectionMotif slug="certifications" />
-      <div className="flex items-baseline justify-between gap-4">
-        <p className="max-w-prose leading-relaxed text-muted">{CERT_INTRO}</p>
-        <span className="hidden shrink-0 font-mono text-xs uppercase tracking-label text-faint sm:block">
-          {CERTS.length} credentials
-        </span>
-      </div>
-
-      <div className="mt-12 divide-y divide-line border-t border-line">
+      <div className="divide-y divide-line border-t border-line">
         {CERTS.map((cert) => (
           <div key={cert.slug} className="py-9">
             <CertCard cert={cert} />

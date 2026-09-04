@@ -2,7 +2,6 @@ import Link from 'next/link';
 import Nav from './Nav';
 import Atmosphere from './Atmosphere';
 import Parallax from './Parallax';
-import Scramble from './Scramble';
 import { SECTIONS, sectionBySlug, type SectionSlug } from '@/lib/content';
 
 type Align = 'left' | 'right';
@@ -51,14 +50,11 @@ export default function PageShell({
             <header
               className={`flex flex-col gap-8 animate-[fadeIn_700ms_ease-out_both] ${text}`}
             >
-              <div className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-faint">
-                {eyebrow ?? (
-                  <>
-                    <span className="text-faint/70">{'//////'}</span>{' '}
-                    {meta && <Scramble text={`SECTION_${meta.index}`} duration={800} />}
-                  </>
-                )}
-              </div>
+              {eyebrow && (
+                <div className="font-mono text-[0.7rem] uppercase tracking-[0.28em] text-faint">
+                  {eyebrow}
+                </div>
+              )}
               <h1 className="max-w-[16ch] font-serif text-[2.6rem] font-light leading-[0.98] tracking-[-0.015em] text-ink md:text-6xl lg:text-[5rem]">
                 {title}
               </h1>

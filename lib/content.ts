@@ -575,12 +575,10 @@ export async function logParams(): Promise<{ category: string; date: string }[]>
 // ── Projects ─────────────────────────────────────────────────────────
 export type ProjectSummary = { id: string; title: string; blurb: string };
 
-// Alphabetical by title, ignoring a leading article, so the list has a
-// predictable order regardless of Notion's page ordering.
+// Strict alphabetical by the displayed title (case-insensitive), so the
+// first letters run cleanly A→Z regardless of Notion's page ordering.
 const byTitle = (a: { title: string }, b: { title: string }) =>
-  a.title.replace(/^(the|a|an)\s+/i, '').localeCompare(
-    b.title.replace(/^(the|a|an)\s+/i, '')
-  );
+  a.title.localeCompare(b.title, undefined, { sensitivity: 'base' });
 
 export async function loadProjects(): Promise<ProjectSummary[]> {
   const children = await getChildPages(NOTION_PAGES.projects);

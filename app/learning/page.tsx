@@ -18,7 +18,6 @@ export default function LearningPage() {
     <PageShell
       slug="learning"
       title={meta.title}
-      tagline={meta.tagline}
       footer={<SectionNav slug="learning" />}
     >
       <SectionMotif slug="learning" />

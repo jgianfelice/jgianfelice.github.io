@@ -3,6 +3,10 @@ import type { ProjectExtras } from '@/lib/projectExtras';
 // A closing "Resources" block for a project: outbound links (buy / demo /
 // external) as pills, plus any supplemental media.
 export default function ProjectResources({ extras }: { extras: ProjectExtras }) {
+  const links = extras.links ?? [];
+  // Nothing to show (e.g. a project that only carries a stat grid): render
+  // nothing rather than a bare "Resources" header.
+  if (!links.length && !extras.image) return null;
   return (
     <section className="mt-16 border-t border-line pt-10">
       <div className="mb-6 flex items-center gap-3">
@@ -13,7 +17,7 @@ export default function ProjectResources({ extras }: { extras: ProjectExtras }) 
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {extras.links.map((l) => (
+        {links.map((l) => (
           <a
             key={l.href}
             href={l.href}

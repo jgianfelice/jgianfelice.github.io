@@ -19,7 +19,7 @@ export type ProjectStanding = {
 export type ProjectExtras = {
   // Short tag shown on the projects index (e.g. "For sale", "Demo").
   tag?: string;
-  links: ProjectLink[];
+  links?: ProjectLink[];
   image?: { src: string; alt: string };
   standing?: ProjectStanding;
 };
@@ -37,6 +37,58 @@ const EXTRAS: { match: string; extras: ProjectExtras }[] = [
           kind: 'buy',
         },
       ],
+      standing: {
+        stats: [
+          { value: '1M+', label: 'transactions tested' },
+          { value: '67%', label: 'profit from top 3 products' },
+          { value: '£6,600', label: 'monthly upside surfaced' },
+        ],
+        note: 'Validated against a real UK giftware retailer dataset, where the tool flagged underpriced products and concentration risk automatically.',
+      },
+    },
+  },
+  {
+    // Backtrader — RealisticExecutionModel (its PR link lives in the prose)
+    match: 'backtrader',
+    extras: {
+      links: [],
+      standing: {
+        stats: [
+          { value: '+8.46%', label: 'return, no costs' },
+          { value: '+1.22%', label: 'with realistic execution' },
+          { value: '−7.24%', label: 'cost drag' },
+        ],
+        note: 'The same SMA-20 strategy on SPY, run through a realistic fill model instead of the default close-price fill: most of the return was never real.',
+      },
+    },
+  },
+  {
+    // The Compounding Period of Cash Volatility (its SSRN link lives in prose)
+    match: 'compounding',
+    extras: {
+      links: [],
+      standing: {
+        stats: [
+          { value: '22,972', label: 'firm-years' },
+          { value: '3,080', label: 'U.S. public firms' },
+          { value: '150–270 bp', label: 'stability return spread' },
+        ],
+        note: 'A panel built entirely from public SEC XBRL filings, testing whether steadier cash flow compounds into higher long-horizon returns.',
+      },
+    },
+  },
+  {
+    // Equity Research Report — Spotify Technology S.A.
+    match: 'equity research',
+    extras: {
+      standing: {
+        stats: [
+          { value: '$700', label: 'price target' },
+          { value: '33%', label: 'implied upside' },
+          { value: 'Strong Buy', label: 'initiation' },
+        ],
+        note: 'Independent equity research on Spotify, built from scratch with no template and no guidance.',
+      },
     },
   },
   {

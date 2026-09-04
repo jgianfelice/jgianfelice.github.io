@@ -383,7 +383,6 @@ export default function Atmosphere({
               </div>
             )}
             <div className="brackets px-3 py-2 font-mono text-[0.62rem] uppercase leading-[1.9] tracking-[0.22em] text-ink/75">
-              <div className="text-faint">{'//////'} IDX_{index}</div>
               <div className="text-ink/90">
                 <Scramble text={title.toUpperCase()} duration={1100} delay={250} />
               </div>

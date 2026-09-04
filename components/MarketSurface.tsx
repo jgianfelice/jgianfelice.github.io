@@ -11,11 +11,7 @@ import {
   Billboard,
 } from '@react-three/drei';
 import { Terrain, GroundShadow, useSoftDot } from './Scenery';
-import {
-  EffectComposer,
-  ChromaticAberration,
-  Noise,
-} from '@react-three/postprocessing';
+import { EffectComposer, Noise } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import * as THREE from 'three';
 
@@ -159,11 +155,11 @@ function CandleChart({
             position={[c.x, c.lo, 0]}
             scale={[1, 0.001, 1]}
           >
-            <mesh position={[0, (c.hi - c.lo) / 2, 0]}>
+            <mesh position={[0, (c.hi - c.lo) / 2, 0]} raycast={() => null}>
               <boxGeometry args={[0.012, c.hi - c.lo, 0.012]} />
               <meshBasicMaterial color={col} />
             </mesh>
-            <mesh position={[0, c.bC - c.lo, 0]}>
+            <mesh position={[0, c.bC - c.lo, 0]} raycast={() => null}>
               <boxGeometry args={[0.075, c.bH, 0.075]} />
               <meshStandardMaterial
                 color={col}
@@ -533,19 +529,19 @@ const HERO_SIZE = 2.05;
 
 function HeroCrystal({
   introRef,
-  scrollRef,
   sections,
   picked,
   onPick,
+  onFocus,
 }: {
   introRef: React.MutableRefObject<number>;
-  scrollRef: React.MutableRefObject<number>;
   sections: Section[];
-  // A tapped face (touch devices, which cannot hover). Lifted to
-  // MarketSurface so the canvas background can clear it, and so the HTML
-  // layer can show a matching "enter this section" card.
+  // The selected face (persists after a click / tap). Lifted to MarketSurface
+  // so the HTML "Explore" control can target the matching section.
   picked: number | null;
   onPick: (i: number | null) => void;
+  // Fires as the cursor moves across faces, so the Explore control follows.
+  onFocus?: (i: number | null) => void;
 }) {
   const grp = useRef<THREE.Group>(null);
   const dir = useRef<THREE.Group>(null);
@@ -582,8 +578,14 @@ function HeroCrystal({
       return { f, z: n.z, ang: Math.atan2(ctr.y, ctr.x) };
     });
     scored.sort((p1, p2) => p2.z - p1.z); // most camera-facing first
-    const ring = scored.slice(1, 6).sort((p1, p2) => p1.ang - p2.ang);
-    const picks = ring.map((r) => r.f) as Face[];
+    // Projects rides the CENTRE face — `front`, dead-on over the chart (it is
+    // exactly the most camera-facing face). The remaining sections ring around
+    // it, Certifications taking the slot Projects used to hold.
+    const ringFaces = scored
+      .slice(1, 6)
+      .sort((p1, p2) => p1.ang - p2.ang)
+      .map((r) => r.f);
+    const picks = [front, ...ringFaces.slice(0, 4)] as Face[];
 
     // Each name sits just OUTSIDE the prism, at the end of a short leader
     // line. Take the face centre in the camera-facing frame and push it out
@@ -600,9 +602,17 @@ function HeroCrystal({
     const gap = 0.14; // blank space between the leader end and the first glyph
     const leaderLen = 0.52; // fixed leader length, so it reads at every angle
     const labelPos: THREE.Vector3[] = [];
-    const anchors: ('left' | 'right')[] = [];
-    const leader = picks.map((f) => {
+    const anchors: ('left' | 'right' | 'center')[] = [];
+    const leader = picks.map((f, idx) => {
       const rc = f.center.clone().applyQuaternion(q);
+      if (idx === 0) {
+        // centre face → the name floats just above the crystal, no leader arm
+        labelPos.push(
+          new THREE.Vector3(0, HERO_SIZE + 0.4, rc.z).applyQuaternion(qInv)
+        );
+        anchors.push('center');
+        return new Float32Array([0, 0, 0, 0, 0, 0]);
+      }
       const r2 = Math.hypot(rc.x, rc.y) || 1;
       const ux = rc.x / r2;
       const uy = rc.y / r2;
@@ -628,14 +638,11 @@ function HeroCrystal({
     const e = easeOut(clamp01(introRef.current));
     if (grp.current) grp.current.scale.setScalar((0.6 + e * 0.4) * fit);
 
-    const active = scrollRef.current < HERO_END && introRef.current > 0.5;
-    if (dir.current) dir.current.visible = active;
-    if (!active) {
-      if (hover !== null) setHover(null);
-      onPick(null); // guarded in MarketSurface — a no-op once already null
-    }
+    // The homepage is only the hero now, so its directory is always live.
+    const active = true;
+    if (dir.current) dir.current.visible = true;
 
-    // Hover (mouse) takes precedence; a tapped face (touch) persists.
+    // Hover (mouse) takes precedence; a clicked/tapped face persists.
     const sel = hover !== null ? hover : picked;
     const t = state.clock.elapsedTime;
     picks.forEach((_, i) => {
@@ -651,7 +658,10 @@ function HeroCrystal({
       const idleEdge = active ? 0.28 + 0.16 * breath : 0;
       const panel = panelRefs.current[i];
       if (panel) {
-        (panel.material as THREE.MeshBasicMaterial).opacity = idleFill * (1 - a) + 0.3 * a;
+        // The centre face sits over the chart — keep its fill barely there so
+        // the candles read through; the ring faces can wash darker on select.
+        const selFill = i === 0 ? 0.06 : 0.3;
+        (panel.material as THREE.MeshBasicMaterial).opacity = idleFill * (1 - a) + selFill * a;
       }
       const edge = edgeRefs.current[i];
       if (edge) {
@@ -688,12 +698,12 @@ function HeroCrystal({
               samples={narrow ? 4 : 6}
               thickness={0.6}
               ior={1.31}
-              chromaticAberration={narrow ? 0.04 : 0.12}
-              anisotropicBlur={narrow ? 0.15 : 0.25}
+              chromaticAberration={narrow ? 0.01 : 0.02}
+              anisotropicBlur={narrow ? 0.12 : 0.2}
               roughness={0.16}
-              distortion={narrow ? 0.1 : 0.28}
+              distortion={narrow ? 0.08 : 0.2}
               distortionScale={0.35}
-              temporalDistortion={narrow ? 0.015 : 0.07}
+              temporalDistortion={narrow ? 0.01 : 0.04}
               transmission={1}
               color={ICE}
               attenuationColor={ICE}
@@ -723,25 +733,21 @@ function HeroCrystal({
                     onPointerOver={(ev) => {
                       ev.stopPropagation();
                       setHover(i);
+                      onFocus?.(i);
                       document.body.style.cursor = 'pointer';
                     }}
                     onPointerOut={(ev) => {
                       ev.stopPropagation();
                       setHover((h) => (h === i ? null : h));
+                      onFocus?.(picked);
                       document.body.style.cursor = '';
                     }}
                     onPointerDown={(ev) => {
                       ev.stopPropagation();
-                      // Touch/pen can't hover: first tap reveals the section
-                      // preview (and its Enter button in the HTML layer); tap
-                      // again to dismiss. A mouse click flies straight down to
-                      // the section, exactly as before.
-                      if (ev.pointerType === 'touch' || ev.pointerType === 'pen') {
-                        onPick(picked === i ? null : i);
-                      } else {
-                        const max = document.body.scrollHeight - window.innerHeight;
-                        window.scrollTo({ top: SECTION_S[i] * max, behavior: 'smooth' });
-                      }
+                      // A click/tap selects the face and reveals its name; the
+                      // Explore control in the HTML layer does the navigating.
+                      onPick(i);
+                      onFocus?.(i);
                     }}
                   >
                     <bufferGeometry>
@@ -809,8 +815,11 @@ function HeroCrystal({
                           anchorX={anc}
                           anchorY="middle"
                           color={INK}
+                          renderOrder={5}
+                          material-depthTest={false}
+                          material-transparent
                         >
-                          {sec.index}  {sec.title.toUpperCase()}
+                          {sec.title.toUpperCase()}
                         </Text>
                       </Billboard>
                     </>
@@ -890,22 +899,20 @@ function CursorLight({ pointer }: { pointer: React.MutableRefObject<{ x: number;
 
 function World({
   sections,
-  scrollRef,
   pointer,
   picked,
   onPick,
+  onFocus,
 }: {
   sections: Section[];
-  scrollRef: React.MutableRefObject<number>;
   pointer: React.MutableRefObject<{ x: number; y: number }>;
   picked: number | null;
   onPick: (i: number | null) => void;
+  onFocus?: (i: number | null) => void;
 }) {
-  // The hero crystal grows on load; section crystals grow when reached.
-  const heroIntro = useRef(0);
-  useFrame((_, delta) => {
-    heroIntro.current = Math.min(1, heroIntro.current + delta / 2.4);
-  });
+  // The hero crystal is present in full from the first frame — no grow-in,
+  // no zoom: the object simply IS there.
+  const heroIntro = useRef(1);
 
   return (
     <>
@@ -927,39 +934,20 @@ function World({
           foreground — layered like igloo's. */}
       <Terrain y={-2.6} zCenter={-30} />
       <GroundShadow position={[0, -2.52, 0]} scale={3.2} opacity={0.18} />
-      {STATIONS.slice(1).map((st, j) => (
-        <GroundShadow key={j} position={[st[0], -2.52, st[2]]} scale={2.4} opacity={0.15} />
-      ))}
 
       {/* The air itself moves. */}
       <FrostDrift />
 
-      {/* Hero crystal — the chart sealed in ice, and the site's directory:
-          five of the crystal's real faces light up under the cursor. */}
+      {/* The hero crystal is the whole homepage now: the chart sealed in ice,
+          and the site's directory — its real faces light up under the cursor
+          and link straight to each section. No universe to fly through. */}
       <HeroCrystal
         introRef={heroIntro}
-        scrollRef={scrollRef}
         sections={sections}
         picked={picked}
         onPick={onPick}
+        onFocus={onFocus}
       />
-
-      {/* Section crystals receding into the frost. */}
-      {sections.map((_, j) => (
-        <SectionCrystal key={j} j={j} scrollRef={scrollRef} />
-      ))}
-
-      {/* Section titles */}
-      {sections.map((sec, j) => (
-        <SectionLabel
-          key={sec.href}
-          station={STATIONS[j + 1]}
-          side={j % 2 === 0 ? -1 : 1}
-          s0={SECTION_S[j]}
-          section={sec}
-          scrollRef={scrollRef}
-        />
-      ))}
 
       {/* A mostly-light environment with one mid-grey panel — the crystals
           need a darker reflection to refract, or they vanish into the field. */}
@@ -995,49 +983,23 @@ function SectionCrystal({
   );
 }
 
+// The camera simply holds the hero, framed dead-on, and leans a little with
+// the cursor — no scroll flight, no zoom-in. The object is just there.
 function CameraRig({
-  keyframes,
-  scrollRef,
   pointer,
 }: {
-  keyframes: { s: number; pos: THREE.Vector3; look: THREE.Vector3 }[];
-  scrollRef: React.MutableRefObject<number>;
   pointer: React.MutableRefObject<{ x: number; y: number }>;
 }) {
-  const intro = useRef(0);
-  const pos = useRef(new THREE.Vector3(0, 0.4, 9));
-  const look = useRef(new THREE.Vector3(0, 0, 0));
-  const startPos = useMemo(() => new THREE.Vector3(0, 0.4, 9), []);
+  const pos = useRef(new THREE.Vector3(0, 0.75, 7));
+  const look = useRef(new THREE.Vector3(0, -0.05, 0));
+  const base = useMemo(() => new THREE.Vector3(0, 0.75, 7), []);
   const tPos = useMemo(() => new THREE.Vector3(), []);
-  const tLook = useMemo(() => new THREE.Vector3(), []);
-  const aPos = useMemo(() => new THREE.Vector3(), []);
-  const aLook = useMemo(() => new THREE.Vector3(), []);
 
-  useFrame((state, delta) => {
-    intro.current = Math.min(1, intro.current + delta / 2.6);
-    const e = easeInOut(intro.current);
-    const s = scrollRef.current;
-
-    let lo = keyframes[0];
-    let hi = keyframes[keyframes.length - 1];
-    for (let k = 0; k < keyframes.length - 1; k++) {
-      if (s >= keyframes[k].s && s <= keyframes[k + 1].s) {
-        lo = keyframes[k];
-        hi = keyframes[k + 1];
-        break;
-      }
-    }
-    const tt = smoothstep(lo.s, hi.s, s);
-    aPos.copy(lo.pos).lerp(hi.pos, tt);
-    aLook.copy(lo.look).lerp(hi.look, tt);
-
-    tPos.copy(startPos).lerp(aPos, e);
-    tLook.lerp(aLook, e * 0.9 + 0.1);
+  useFrame((state) => {
+    tPos.copy(base);
     tPos.x += pointer.current.x * 0.7;
     tPos.y += pointer.current.y * 0.5;
-
     pos.current.lerp(tPos, 0.06);
-    look.current.lerp(tLook, 0.08);
     state.camera.position.copy(pos.current);
     state.camera.lookAt(look.current);
   });
@@ -1046,25 +1008,23 @@ function CameraRig({
 
 export default function MarketSurface({
   sections,
-  onSceneChange,
+  onFocus,
   onHeroPick,
   onReady,
 }: {
   sections: Section[];
-  onSceneChange?: (i: number) => void;
+  // Reports which section face the cursor/selection is on, so the HTML
+  // "Explore" control can point at the right page.
+  onFocus?: (i: number | null) => void;
   onHeroPick?: (i: number | null) => void;
   // Fires once the WebGL context is live — the HTML loader fades on this.
   onReady?: () => void;
 }) {
-  const scrollRef = useRef(0);
   const pointer = useRef({ x: 0, y: 0 });
   const [mounted, setMounted] = useState(false);
-  // The hero doubles as a directory, so the canvas only accepts pointer
-  // events while you're in the hero; below that it stays click-through.
-  const [interactive, setInteractive] = useState(true);
 
-  // A tapped hero face (touch only). Guarded so repeated clears are no-ops,
-  // which lets HeroCrystal safely clear it from its frame loop.
+  // Nothing is selected at rest, so the hero stays purely the object (no
+  // text) until you touch a face. Explore still defaults to Projects.
   const [picked, setPicked] = useState<number | null>(null);
   const pickedRef = useRef<number | null>(null);
   const pick = (i: number | null) => {
@@ -1074,131 +1034,45 @@ export default function MarketSurface({
     onHeroPick?.(i);
   };
 
-  const keyframes = useMemo(() => {
-    const kf: { s: number; pos: THREE.Vector3; look: THREE.Vector3 }[] = [];
-    // Hero — straight on the first crystal, riding slightly high so the
-    // snowfield reads beneath it.
-    kf.push({
-      s: 0,
-      pos: new THREE.Vector3(0, 0.75, 7),
-      look: new THREE.Vector3(0, -0.05, 0),
-    });
-    STATIONS.slice(1).forEach((st, j) => {
-      const side = j % 2 === 0 ? 1 : -1; // approach from the open side
-      kf.push({
-        s: SECTION_S[j],
-        pos: new THREE.Vector3(st[0] * 0.35 + side * 1.4, st[1] * 0.6 + 0.65, st[2] + 6.2),
-        look: new THREE.Vector3(st[0], st[1], st[2]),
-      });
-    });
-    // The flight ends settled on the final crystal — no closing void.
-    const last = STATIONS[STATIONS.length - 1];
-    kf.push({
-      s: 1,
-      pos: new THREE.Vector3(last[0] * 0.4, last[1] * 0.6 + 0.3, last[2] + 5.0),
-      look: new THREE.Vector3(last[0], last[1], last[2]),
-    });
-    return kf;
-  }, []);
-
   useEffect(() => {
     setMounted(true);
-    // Cache the scroll range. On mobile the URL bar collapses on first scroll,
-    // which changes window.innerHeight; recomputing the range every scroll would
-    // re-map progress and jerk the camera mid-intro (the "zoom in/out glitch").
-    // So the range is recomputed only on a real WIDTH change (or a settle pass),
-    // never on height-only changes.
-    let maxH = 1;
-    let lastW = typeof window !== 'undefined' ? window.innerWidth : 0;
-    const recompute = () => {
-      maxH = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    };
-    const onScroll = () => {
-      const p = Math.min(1, Math.max(0, window.scrollY / maxH));
-      scrollRef.current = p;
-      setInteractive(p < HERO_END);
-      let idx: number;
-      if (p < HERO_END) idx = 0;
-      else {
-        let best = 0;
-        let bestD = Infinity;
-        SECTION_S.forEach((sv, j) => {
-          const d = Math.abs(p - sv);
-          if (d < bestD) {
-            bestD = d;
-            best = j;
-          }
-        });
-        idx = best + 1;
-      }
-      onSceneChange?.(idx);
-    };
-    const onResize = () => {
-      if (window.innerWidth !== lastW) {
-        lastW = window.innerWidth;
-        recompute();
-        onScroll();
-      }
-    };
+    onFocus?.(0); // default focus: Projects (centre face)
     const onMove = (e: MouseEvent) => {
       pointer.current.x = (e.clientX / window.innerWidth) * 2 - 1;
       pointer.current.y = -((e.clientY / window.innerHeight) * 2 - 1);
     };
-    recompute();
-    onScroll();
-    // Re-measure once the layout has settled (fonts, mobile chrome), without
-    // moving the camera if we're still parked at the top.
-    const settle = window.setTimeout(() => {
-      recompute();
-      onScroll();
-    }, 500);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onResize);
     window.addEventListener('mousemove', onMove, { passive: true });
-    return () => {
-      window.clearTimeout(settle);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onResize);
-      window.removeEventListener('mousemove', onMove);
-    };
-  }, [onSceneChange]);
+    return () => window.removeEventListener('mousemove', onMove);
+  }, [onFocus]);
 
   return (
-    <div
-      className={`fixed inset-0 z-0 ${
-        interactive ? 'pointer-events-auto' : 'pointer-events-none'
-      }`}
-    >
+    <div className="fixed inset-0 z-0 pointer-events-auto">
       {mounted && (
         <Canvas
-          camera={{ position: [0, 0.4, 9], fov: 42 }}
+          camera={{ position: [0, 0.75, 7], fov: 42 }}
           gl={{ antialias: true }}
           dpr={[1, 1.6]}
           style={{ touchAction: 'pan-y' }}
-          onPointerMissed={() => pick(null)}
+          onPointerMissed={() => {
+            pick(null);
+            onFocus?.(0);
+          }}
           onCreated={() => requestAnimationFrame(() => onReady?.())}
         >
           <color attach="background" args={[BG]} />
           <fog attach="fog" args={[BG, 11, 46]} />
-          <CameraRig keyframes={keyframes} scrollRef={scrollRef} pointer={pointer} />
+          <CameraRig pointer={pointer} />
           <World
             sections={sections}
-            scrollRef={scrollRef}
             pointer={pointer}
             picked={picked}
             onPick={pick}
+            onFocus={onFocus}
           />
 
-          {/* No Bloom/Vignette on a light field — they'd wash the pale
-              background to white and dirty the corners. Contrast does the work;
-              a faint chromatic edge and grain keep the glass and texture. */}
+          {/* Just a faint grain — no chromatic aberration pass (its coloured
+              fringing was the stray glitch on the glass). */}
           <EffectComposer>
-            <ChromaticAberration
-              blendFunction={BlendFunction.NORMAL}
-              offset={new THREE.Vector2(0.0005, 0.0005)}
-              radialModulation={false}
-              modulationOffset={0}
-            />
             <Noise premultiply blendFunction={BlendFunction.SOFT_LIGHT} opacity={0.035} />
           </EffectComposer>
         </Canvas>

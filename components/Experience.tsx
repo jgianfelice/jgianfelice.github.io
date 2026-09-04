@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Nav from './Nav';
 import Parallax from './Parallax';
-import MarketSurface, { SECTION_S } from './MarketSurface';
+import MarketSurface from './MarketSurface';
 import type { Block, HomeContent } from '@/lib/notion';
 
 // igloo-style boot loader: a glowing strip of =+- glyphs scrambling in the
@@ -49,12 +49,11 @@ function GlyphLoader({ done }: { done: boolean }) {
 }
 
 // ── The Home Experience ────────────────────────────────────────────
-// There is no "page" here in the usual sense. The WebGL world IS the
-// site: the candlestick rally builds itself, the camera flies up the
-// climb, and each section's title rises straight out of the chart as
-// you reach it. The HTML layer is almost nothing — a small wordmark
-// pinned top-left, a single context-aware CTA, and invisible scroll
-// track that drives the camera. Everything you read lives in the scene.
+// The homepage IS the hero crystal — the chart sealed in ice, and a
+// directory in one object. Its real faces carry the sections (Projects on
+// the centre face, the rest ringing it); hovering or tapping a face reveals
+// its name, and one Explore control links straight to whichever section is
+// in focus. No scroll journey, no flight — the object is simply there.
 
 function firstPara(blocks: Block[]): string {
   const p = blocks.find((b) => b.type === 'p') as any;
@@ -62,17 +61,14 @@ function firstPara(blocks: Block[]): string {
 }
 
 export default function Experience({ content }: { content: HomeContent }) {
-  // 0 = hero, 1..5 = the five sections.
-  const [scene, setScene] = useState(0);
-  // A hero face tapped on a touch device (which can't hover) — drives the
-  // mobile "preview + enter" card below.
-  const [heroPick, setHeroPick] = useState<number | null>(null);
-  // Boot: the loader holds until the world's first frame AND a short beat,
-  // so the glyphs always read as an intentional moment, never a flash. A
-  // failsafe clears it after 6s regardless — if WebGL ever refuses to start
-  // on some device, the site must never stay behind the curtain.
+  // Boot: hold the loader until the world's first frame AND a short beat, with
+  // a 6s failsafe so the site can never stay behind the curtain.
   const [worldReady, setWorldReady] = useState(false);
   const [minHold, setMinHold] = useState(false);
+  // Which section face is in focus (hover on desktop, tap on mobile). Projects
+  // (the centre face, index 0) is the default.
+  const [focused, setFocused] = useState(0);
+
   useEffect(() => {
     const t = window.setTimeout(() => setMinHold(true), 900);
     const failsafe = window.setTimeout(() => setWorldReady(true), 6000);
@@ -125,16 +121,8 @@ export default function Experience({ content }: { content: HomeContent }) {
     },
   ];
 
-  const active = scene >= 1 && scene <= 5 ? sections[scene - 1] : null;
-
-  // Fly the camera down to a section — the same smooth scroll the desktop
-  // face-click does. The mobile preview card uses this so a tap plays the
-  // flight instead of hard-navigating to the page.
-  const flyTo = (i: number) => {
-    setHeroPick(null);
-    const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-    window.scrollTo({ top: SECTION_S[i] * max, behavior: 'smooth' });
-  };
+  const onFocus = useCallback((i: number | null) => setFocused(i ?? 0), []);
+  const current = sections[focused] ?? sections[0];
 
   return (
     <>
@@ -143,16 +131,14 @@ export default function Experience({ content }: { content: HomeContent }) {
       {/* Boot sequence — glowing glyphs until the world is live. */}
       <GlyphLoader done={worldReady && minHold} />
 
-      {/* The world — fixed, full-bleed, carries every word you read. */}
+      {/* The world — a single hero crystal, its faces the site's directory. */}
       <MarketSurface
         sections={sections}
-        onSceneChange={setScene}
-        onHeroPick={setHeroPick}
+        onFocus={onFocus}
         onReady={() => setWorldReady(true)}
       />
 
-      {/* Wordmark, pinned top-left and present from the very first frame —
-          CMU Typewriter, uppercase, the way igloo sets its marque. */}
+      {/* Wordmark, pinned top-left from the first frame. */}
       <div className="fixed top-6 left-6 z-30 pointer-events-auto select-none animate-[fadeIn_900ms_ease-out_both]">
         <Parallax amount={5}>
           <Link href="/" className="block leading-[1.2]">
@@ -166,85 +152,27 @@ export default function Experience({ content }: { content: HomeContent }) {
         </Parallax>
       </div>
 
-      {/* Phones can't fit the in-world side titles, so the section name
-          surfaces here instead — an HTML title card floating over the scene,
-          keyed so it rises fresh at every station. */}
-      {active && (
-        <div
-          key={active.title}
-          className="fixed inset-x-0 bottom-24 z-20 px-8 text-center pointer-events-none md:hidden animate-[fadeIn_600ms_ease-out_both]"
-        >
-          <div className="font-serif text-4xl font-light tracking-[-0.01em] text-ink">
-            {active.title}
-          </div>
+      {/* Phones can't fit the in-world face labels, so the focused section's
+          name surfaces here instead. */}
+      <div
+        key={current.title}
+        className="fixed inset-x-0 bottom-24 z-20 px-8 text-center pointer-events-none md:hidden animate-[fadeIn_400ms_ease-out_both]"
+      >
+        <div className="font-serif text-4xl font-light tracking-[-0.01em] text-ink">
+          {current.title}
         </div>
-      )}
+      </div>
 
-      {/* One context-aware control. It points at whatever the camera is
-          looking at — so navigation lives with the visual, not beside it. */}
+      {/* One Explore control — links straight to whatever face is in focus. */}
       <div className="fixed bottom-8 inset-x-0 z-30 flex justify-center pointer-events-none">
         <Link
-          href={active?.href || '/projects'}
-          className={`pointer-events-auto inline-flex items-center gap-2 font-mono text-xs tracking-label uppercase text-muted hover:text-accent transition-all duration-500 ${
-            active ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'
-          }`}
+          href={current.href}
+          className="pointer-events-auto inline-flex items-center gap-2 font-mono text-xs uppercase tracking-label text-muted transition-colors duration-300 hover:text-accent"
         >
-          <span className="link-underline">Enter {active?.title}</span>
+          <span className="link-underline">Explore {current.title}</span>
           <span>→</span>
         </Link>
       </div>
-
-      {/* Touch preview — because you can't hover a crystal on a phone: tap a
-          face to raise its section here, then tap Explore to PLAY the camera
-          flight down to it (same as a desktop click), not jump pages. Mobile
-          only; the desktop hover→click flow is untouched. */}
-      {heroPick !== null && sections[heroPick] && (
-        <div className="fixed inset-x-0 bottom-0 z-40 p-4 pointer-events-auto md:hidden animate-[fadeIn_300ms_ease-out_both]">
-          <div className="tile mx-auto max-w-sm p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="font-mono text-xs uppercase tracking-label text-accent">
-                {sections[heroPick].title}
-              </div>
-              <button
-                onClick={() => setHeroPick(null)}
-                aria-label="Dismiss preview"
-                className="-mr-1 -mt-1 px-1 font-mono text-lg leading-none text-muted hover:text-ink"
-              >
-                ×
-              </button>
-            </div>
-            <p className="mt-2.5 text-sm leading-relaxed text-muted">
-              {sections[heroPick].desc}
-            </p>
-            <button
-              onClick={() => flyTo(heroPick)}
-              className="mt-4 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-label text-accent"
-            >
-              <span className="link-underline">Explore {sections[heroPick].title}</span>
-              <span>↓</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Scroll cue, only at the very top — wordless, so the hero stays
-          purely the object. Just a quiet pulse downward. */}
-      <div
-        className={`fixed bottom-8 inset-x-0 z-20 flex flex-col items-center text-faint transition-opacity duration-700 pointer-events-none ${
-          scene === 0 && heroPick === null ? 'opacity-70' : 'opacity-0'
-        }`}
-      >
-        <span className="inline-block animate-bounce not-italic text-lg">↓</span>
-      </div>
-
-      {/* Invisible scroll track — six viewports drive the camera flight:
-          hero · five sections. Click-through, so the hero crystal beneath
-          stays hoverable as a directory. No visible HTML content. */}
-      <main className="relative z-0 pointer-events-none">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <section key={i} className="h-screen" aria-hidden />
-        ))}
-      </main>
     </>
   );
 }
