@@ -575,17 +575,23 @@ function HeroCrystal({
     const scored = faces.map((f) => {
       const n = f.normal.clone().applyQuaternion(q);
       const ctr = f.center.clone().applyQuaternion(q);
-      return { f, z: n.z, ang: Math.atan2(ctr.y, ctr.x) };
+      return { f, z: n.z, y: ctr.y, ang: Math.atan2(ctr.y, ctr.x) };
     });
     scored.sort((p1, p2) => p2.z - p1.z); // most camera-facing first
-    // Projects rides the CENTRE face — `front`, dead-on over the chart (it is
-    // exactly the most camera-facing face). The remaining sections ring around
-    // it, Certifications taking the slot Projects used to hold.
-    const ringFaces = scored
-      .slice(1, 6)
+    // Projects rides the CENTRE face — `front`, dead-on over the chart. Of the
+    // five faces ringing it, the BOTTOM one is deliberately left empty; the
+    // other four (in angular order) carry Certifications, Learning, Logs, and
+    // About.
+    const ring = scored.slice(1, 6);
+    let bottomIdx = 0;
+    ring.forEach((r, i) => {
+      if (r.y < ring[bottomIdx].y) bottomIdx = i;
+    });
+    const ringFaces = ring
+      .filter((_, i) => i !== bottomIdx)
       .sort((p1, p2) => p1.ang - p2.ang)
       .map((r) => r.f);
-    const picks = [front, ...ringFaces.slice(0, 4)] as Face[];
+    const picks = [front, ...ringFaces] as Face[];
 
     // Each name sits just OUTSIDE the prism, at the end of a short leader
     // line. Take the face centre in the camera-facing frame and push it out
