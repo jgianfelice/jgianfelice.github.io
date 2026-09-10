@@ -114,6 +114,19 @@ export const CERT_INTRO =
 
 export const CERT_GROUPS: CertGroup[] = [
   {
+    issuer: 'CIRO / OCRI',
+    certs: [
+      {
+        slug: 'cire',
+        name: 'Canadian Investment Regulatory Exam (CIRE)',
+        date: 'Issued Sep 2026',
+        image: '/certs/cire.png',
+        blurb:
+          "The Canadian Investment Regulatory Organization's exam for registration in the securities industry, covering regulatory conduct, compliance, and the duties of a registered representative.",
+      },
+    ],
+  },
+  {
     issuer: 'Citi',
     certs: [
       {
