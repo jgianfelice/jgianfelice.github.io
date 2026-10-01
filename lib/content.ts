@@ -114,6 +114,19 @@ export const CERT_INTRO =
 
 export const CERT_GROUPS: CertGroup[] = [
   {
+    issuer: 'Cboe',
+    certs: [
+      {
+        slug: 'cboe-options-strategies',
+        name: 'Options Strategies',
+        date: 'Issued Oct 2026',
+        image: '/certs/cboe-options.png',
+        blurb:
+          "The Options Institute's program on options strategies: how calls and puts combine into spreads and positions for income, hedging, and directional views.",
+      },
+    ],
+  },
+  {
     issuer: 'CIRO / OCRI',
     certs: [
       {
