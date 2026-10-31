@@ -114,6 +114,19 @@ export const CERT_INTRO =
 
 export const CERT_GROUPS: CertGroup[] = [
   {
+    issuer: 'LSEG',
+    certs: [
+      {
+        slug: 'lseg-workspace',
+        name: 'LSEG Workspace Certification',
+        date: 'Issued Oct 2026',
+        image: '/certs/lseg-workspace.png',
+        blurb:
+          "The London Stock Exchange Group's certification on its Workspace terminal: navigating market data, news, company fundamentals, and analytics.",
+      },
+    ],
+  },
+  {
     issuer: 'Cboe',
     certs: [
       {
