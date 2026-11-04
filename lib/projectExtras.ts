@@ -78,6 +78,21 @@ const EXTRAS: { match: string; extras: ProjectExtras }[] = [
     },
   },
   {
+    // Private Credit Mark Dispersion (Harvard Dataverse; DOI link lives in prose)
+    match: 'mark dispersion',
+    extras: {
+      links: [],
+      standing: {
+        stats: [
+          { value: '47,251', label: 'loans held by 2+ BDCs' },
+          { value: '599,605', label: 'holdings parsed from filings' },
+          { value: '199', label: 'BDCs, 2,064 filings' },
+        ],
+        note: 'Every case where the same private credit loan sits on two or more BDCs’ books, with the spread between their marks measured, from public SEC filings only.',
+      },
+    },
+  },
+  {
     // Equity Research Report — Spotify Technology S.A.
     match: 'equity research',
     extras: {
